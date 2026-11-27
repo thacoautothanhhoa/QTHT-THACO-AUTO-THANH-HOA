@@ -736,94 +736,86 @@
       </div>
 
       <!-- Tiêu đề Báo cáo Ngày ngay trên đầu 4 ô đánh giá theo mảng -->
-      <div class="report-frame-head" style="margin: 0 0 8px; padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md);">
+      <div class="report-frame-head" style="margin: 0 0 6px; padding: 6px 10px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md);">
         <div>
           THACO AUTO THANH HÓA &nbsp;|&nbsp; BÁO CÁO NGÀY ${escapeHtml(daily.reportDate)}
-          <span class="tag tag-blue" style="margin-left:6px;">Ngày ${timeInfo.day}/${timeInfo.totalDays} (${timeInfo.pct}% tháng)</span>
+          <span class="tag tag-blue" style="margin-left:6px; font-size:11px; padding:1px 7px;">Ngày ${timeInfo.day}/${timeInfo.totalDays} (${timeInfo.pct}% tháng)</span>
         </div>
       </div>
 
-      <!-- 4 Ô Tổng Theo Mảng: KD xe Du lịch, KD xe Tải Bus, KD DVPT xe Du lịch, KD DVPT xe Tải Bus -->
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-domain-title">
-            <span>🚗 KD xe Du lịch</span>
-            <span class="mono" style="font-size:11px; color:var(--text-muted);">Ngày: +${dlSum.dayContract} Ký / +${dlSum.dayActual} XHĐ</span>
+      <!-- 4 Ô Tổng Theo Mảng (co gọn để đẩy toàn bộ 3 bảng phía dưới lên trọn khung hình) -->
+      <div class="kpi-grid compact-kpi">
+        ${[
+          {
+            title: '🚗 KD xe Du lịch',
+            delta: `Ngày: +${dlSum.dayContract} Ký / +${dlSum.dayActual} XHĐ`,
+            rows: [
+              { lbl: 'Ký HĐ mới', val: `${dlSum.contractActual} / ${dlSum.contractTarget} xe`, pct: calcPct(dlSum.contractActual, dlSum.contractTarget) },
+              { lbl: 'Xuất hóa đơn (XHĐ)', val: `${dlSum.monthActual} / ${dlSum.monthTarget} xe`, pct: calcPct(dlSum.monthActual, dlSum.monthTarget) },
+            ],
+            backlogLbl: 'HĐ tồn (chưa XHĐ)',
+            backlogVal: `${dlSum.backlog} HĐ`,
+          },
+          {
+            title: '🚚 Kinh doanh xe Tải Bus',
+            delta: `Ngày: +${tbSum.dayContract} Ký / +${tbSum.dayActual} XHĐ`,
+            rows: [
+              { lbl: 'Ký HĐ mới', val: `${tbSum.contractActual} / ${tbSum.contractTarget} xe`, pct: calcPct(tbSum.contractActual, tbSum.contractTarget) },
+              { lbl: 'Xuất hóa đơn (XHĐ)', val: `${tbSum.monthActual} / ${tbSum.monthTarget} xe`, pct: calcPct(tbSum.monthActual, tbSum.monthTarget) },
+            ],
+            backlogLbl: 'HĐ tồn (chưa XHĐ)',
+            backlogVal: `${tbSum.backlog} HĐ`,
+          },
+          {
+            title: '🔧 KD DVPT xe Du lịch',
+            delta: `Ngày: +${formatNum(dvDlSum.dayActual)} tr.đ`,
+            rows: [
+              { lbl: 'Tổng DT DVPT', val: `${formatNum(dvDlSum.monthActual)} / ${formatNum(dvDlSum.monthTarget)} tr.đ`, pct: calcPct(dvDlSum.monthActual, dvDlSum.monthTarget) },
+              { lbl: 'DT DVSC', val: `${formatNum(dvDlSum.cumDvsc)} / ${formatNum(dvDlSum.planDvsc)} tr.đ`, pct: calcPct(dvDlSum.cumDvsc, dvDlSum.planDvsc) },
+            ],
+            backlogLbl: 'Tồn xưởng',
+            backlogVal: `${formatNum(dvDlSum.backlog)} tr.đ (${formatNum(dvDlSum.backlogVisits)} lượt)`,
+          },
+          {
+            title: '🛠️ KD DVPT xe Tải Bus',
+            delta: `Ngày: +${formatNum(dvTbSum.dayActual)} tr.đ`,
+            rows: [
+              { lbl: 'Tổng DT DVPT', val: `${formatNum(dvTbSum.monthActual)} / ${formatNum(dvTbSum.monthTarget)} tr.đ`, pct: calcPct(dvTbSum.monthActual, dvTbSum.monthTarget) },
+              { lbl: 'DT DVSC', val: `${formatNum(dvTbSum.cumDvsc)} / ${formatNum(dvTbSum.planDvsc)} tr.đ`, pct: calcPct(dvTbSum.cumDvsc, dvTbSum.planDvsc) },
+            ],
+            backlogLbl: 'Tồn xưởng',
+            backlogVal: `${formatNum(dvTbSum.backlog)} tr.đ (${formatNum(dvTbSum.backlogVisits)} lượt)`,
+          },
+        ]
+          .map(
+            (card) => `
+          <div class="kpi-card">
+            <div class="kpi-domain-title">
+              <span>${card.title}</span>
+              <span class="mono kpi-domain-delta">${card.delta}</span>
+            </div>
+            ${card.rows
+              .map(
+                (row, idx) => `
+              <div class="kpi-sub-block"${idx === card.rows.length - 1 ? ' style="margin-bottom:0;"' : ''}>
+                <div class="kpi-sub-row"><span>${row.lbl}</span><strong>${row.val}</strong></div>
+                ${renderProgress(row.pct)}
+              </div>
+            `
+              )
+              .join('')}
+            <div class="kpi-backlog-line">
+              <span style="color:var(--text-muted);">${card.backlogLbl}</span>
+              <span class="tag tag-amber">${card.backlogVal}</span>
+            </div>
           </div>
-          <div class="kpi-sub-block">
-            <div class="kpi-sub-row"><span>Ký HĐ mới</span><strong>${dlSum.contractActual} / ${dlSum.contractTarget} xe</strong></div>
-            ${renderProgress(calcPct(dlSum.contractActual, dlSum.contractTarget))}
-          </div>
-          <div class="kpi-sub-block" style="margin-bottom:0;">
-            <div class="kpi-sub-row"><span>Xuất hóa đơn (XHĐ)</span><strong>${dlSum.monthActual} / ${dlSum.monthTarget} xe</strong></div>
-            ${renderProgress(calcPct(dlSum.monthActual, dlSum.monthTarget))}
-          </div>
-          <div class="kpi-backlog-line">
-            <span style="color:var(--text-muted);">HĐ tồn (chưa XHĐ)</span>
-            <span class="tag tag-amber">${dlSum.backlog} HĐ</span>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-domain-title">
-            <span>🚚 Kinh doanh xe Tải Bus</span>
-            <span class="mono" style="font-size:11px; color:var(--text-muted);">Ngày: +${tbSum.dayContract} Ký / +${tbSum.dayActual} XHĐ</span>
-          </div>
-          <div class="kpi-sub-block">
-            <div class="kpi-sub-row"><span>Ký HĐ mới</span><strong>${tbSum.contractActual} / ${tbSum.contractTarget} xe</strong></div>
-            ${renderProgress(calcPct(tbSum.contractActual, tbSum.contractTarget))}
-          </div>
-          <div class="kpi-sub-block" style="margin-bottom:0;">
-            <div class="kpi-sub-row"><span>Xuất hóa đơn (XHĐ)</span><strong>${tbSum.monthActual} / ${tbSum.monthTarget} xe</strong></div>
-            ${renderProgress(calcPct(tbSum.monthActual, tbSum.monthTarget))}
-          </div>
-          <div class="kpi-backlog-line">
-            <span style="color:var(--text-muted);">HĐ tồn (chưa XHĐ)</span>
-            <span class="tag tag-amber">${tbSum.backlog} HĐ</span>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-domain-title">
-            <span>🔧 KD DVPT xe Du lịch</span>
-            <span class="mono" style="font-size:11px; color:var(--text-muted);">Ngày: +${formatNum(dvDlSum.dayActual)} tr.đ</span>
-          </div>
-          <div class="kpi-sub-block">
-            <div class="kpi-sub-row"><span>Tổng DT DVPT</span><strong>${formatNum(dvDlSum.monthActual)} / ${formatNum(dvDlSum.monthTarget)} tr.đ</strong></div>
-            ${renderProgress(calcPct(dvDlSum.monthActual, dvDlSum.monthTarget))}
-          </div>
-          <div class="kpi-sub-block" style="margin-bottom:0;">
-            <div class="kpi-sub-row"><span>DT DVSC</span><strong>${formatNum(dvDlSum.cumDvsc)} / ${formatNum(dvDlSum.planDvsc)} tr.đ</strong></div>
-            ${renderProgress(calcPct(dvDlSum.cumDvsc, dvDlSum.planDvsc))}
-          </div>
-          <div class="kpi-backlog-line">
-            <span style="color:var(--text-muted);">Tồn xưởng</span>
-            <span class="tag tag-amber">${formatNum(dvDlSum.backlog)} tr.đ (${formatNum(dvDlSum.backlogVisits)} lượt)</span>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-domain-title">
-            <span>🛠️ KD DVPT xe Tải Bus</span>
-            <span class="mono" style="font-size:11px; color:var(--text-muted);">Ngày: +${formatNum(dvTbSum.dayActual)} tr.đ</span>
-          </div>
-          <div class="kpi-sub-block">
-            <div class="kpi-sub-row"><span>Tổng DT DVPT</span><strong>${formatNum(dvTbSum.monthActual)} / ${formatNum(dvTbSum.monthTarget)} tr.đ</strong></div>
-            ${renderProgress(calcPct(dvTbSum.monthActual, dvTbSum.monthTarget))}
-          </div>
-          <div class="kpi-sub-block" style="margin-bottom:0;">
-            <div class="kpi-sub-row"><span>DT DVSC</span><strong>${formatNum(dvTbSum.cumDvsc)} / ${formatNum(dvTbSum.planDvsc)} tr.đ</strong></div>
-            ${renderProgress(calcPct(dvTbSum.cumDvsc, dvTbSum.planDvsc))}
-          </div>
-          <div class="kpi-backlog-line">
-            <span style="color:var(--text-muted);">Tồn xưởng</span>
-            <span class="tag tag-amber">${formatNum(dvTbSum.backlog)} tr.đ (${formatNum(dvTbSum.backlogVisits)} lượt)</span>
-          </div>
-        </div>
+        `
+          )
+          .join('')}
       </div>
 
       <!-- Bảng Báo cáo Ngày chi tiết ngay sát dưới 4 ô tổng -->
-      <div class="toolbar">
+      <div class="toolbar compact-toolbar">
         <div class="pill-bar" style="margin-bottom:0;">
           ${DAILY_GROUPS.map((g) => `<button type="button" class="filter-pill ${state.dailyGroup === g ? 'active' : ''}" data-daily-group="${escapeHtml(g)}">${escapeHtml(g)}</button>`).join('')}
         </div>
