@@ -152,9 +152,24 @@
 
   function renderVisualDailyDashboard(daily, vFiltered, dFiltered) {
     const timeInfo = getMonthTimeProgress(daily.reportDate);
+    const vRows = daily.vehicleRows || [];
+    const dRows = daily.dvptRows || [];
     const vBrandIds = ['v-kia', 'v-mazda', 'v-peugeot', 'v-bmw', 'v-tn', 'v-tt', 'v-tnang', 'v-bus'];
-    const vBrands = (daily.vehicleRows || []).filter((r) => vBrandIds.includes(r.id));
-    const dvItems = (daily.dvptRows || []).filter((r) => !r.isSummary && !r.isSubRow && r.monthTarget > 0);
+    const vBrands = vRows.filter((r) => vBrandIds.includes(r.id));
+    const dvItems = dRows.filter((r) => !r.isSummary && !r.isSubRow && r.monthTarget > 0);
+    const srVehicleMeta = [
+      { id: 'v-sr-th', label: 'SR Thanh Hóa (DL)' },
+      { id: 'v-sr-hh', label: 'SR Hoằng Hóa (DL)' },
+      { id: 'v-sr-tx', label: 'SR Thọ Xuân (DL)' },
+      { id: 'v-tb-hh', label: 'SR Hoằng Hóa (TB)' },
+      { id: 'v-tb-tx', label: 'SR Thọ Xuân (TB)' },
+    ];
+    const srDvptMeta = [
+      { id: 'dv-dl-xth', label: 'Xưởng Thanh Hóa (DL)' },
+      { id: 'dv-dl-xtx', label: 'Xưởng Thọ Xuân (DL)' },
+      { id: 'dv-tb-xhh', label: 'Xưởng Hoằng Hóa (TB)' },
+      { id: 'dv-tb-xtx', label: 'Xưởng Thọ Xuân (TB)' },
+    ];
 
     const renderPctPill = (pct) => {
       if (pct === null || pct === undefined) return '';
@@ -162,108 +177,171 @@
       return `<span class="tag ${cls}" style="padding:1px 6px; font-size:11px;">${pct}%</span>`;
     };
 
-    return `
-      <div class="report-frame-box" style="padding:18px;" id="daily-report-frame">
-        <div class="report-frame-head">
-          <div>
-            THACO AUTO THANH HÓA &nbsp;|&nbsp; BÁO CÁO NGÀY ${escapeHtml(daily.reportDate)}
-            <span class="tag tag-blue" style="margin-left:6px;">Ngày ${timeInfo.day}/${timeInfo.totalDays} (${timeInfo.pct}% tháng)</span>
+    const renderDualBarRow = (cfg) => {
+      const pFill = Math.min(100, cfg.primaryPct);
+      const sFill = Math.min(100, cfg.secondaryPct || 0);
+      return `
+        <div class="bar-row" ${cfg.editAttr}>
+          <div class="bar-row-head">
+            <span class="bar-row-name" title="${escapeHtml(cfg.name)}">${escapeHtml(cfg.name)}</span>
+            <div class="bar-row-stats">
+              ${cfg.dayBlueText ? `<span class="delta-pill" style="padding:0 5px; font-size:10px;">${escapeHtml(cfg.dayBlueText)}</span>` : ''}
+              ${cfg.dayGreenText ? `<span class="delta-pill green" style="padding:0 5px; font-size:10px;">${escapeHtml(cfg.dayGreenText)}</span>` : ''}
+              ${cfg.backlogText ? `<span class="tag tag-amber" style="padding:0 5px; font-size:10px;">${escapeHtml(cfg.backlogText)}</span>` : ''}
+            </div>
+          </div>
+          <div class="dual-track">
+            <div class="bar-metric-row">
+              <div class="mini-track" title="${escapeHtml(cfg.primaryLabel)}: ${cfg.primaryPct}%">
+                <div class="mini-fill primary" style="width:${pFill}%;"></div>
+                <div class="pacing-marker" style="left:${timeInfo.pct}%;"></div>
+              </div>
+              <div class="bar-metric-val"><strong style="color:#00529b;">${escapeHtml(cfg.primaryLabel)}</strong> <strong>${cfg.primaryValText}</strong> (${cfg.primaryPct}%)</div>
+            </div>
+            ${
+              cfg.hasSecondary
+                ? `
+              <div class="bar-metric-row">
+                <div class="mini-track" title="${escapeHtml(cfg.secondaryLabel)}: ${cfg.secondaryPct}%">
+                  <div class="mini-fill secondary" style="width:${sFill}%;"></div>
+                  <div class="pacing-marker" style="left:${timeInfo.pct}%;"></div>
+                </div>
+                <div class="bar-metric-val"><strong style="color:#16a34a;">${escapeHtml(cfg.secondaryLabel)}</strong> <strong>${cfg.secondaryValText}</strong> (${cfg.secondaryPct}%)</div>
+              </div>
+            `
+                : ''
+            }
           </div>
         </div>
+      `;
+    };
 
-        <!-- Biểu đồ so sánh tiến độ trực quan với đường vạch chuẩn % thời gian tháng -->
-        <div class="visual-grid-2">
+    const srVehicleRows = srVehicleMeta
+      .map((m) => {
+        const r = vRows.find((x) => x.id === m.id);
+        if (!r) return '';
+        return renderDualBarRow({
+          editAttr: `data-edit-vehicle="${escapeHtml(r.id)}"`,
+          name: m.label,
+          dayBlueText: r.dayContract > 0 ? `+${r.dayContract} Ký` : '',
+          dayGreenText: r.dayActual > 0 ? `+${r.dayActual} XHĐ` : '',
+          backlogText: r.backlog > 0 ? `Tồn ${r.backlog}` : '',
+          primaryLabel: 'Ký',
+          primaryValText: `${r.contractActual}/${r.contractTarget}`,
+          primaryPct: calcPct(r.contractActual, r.contractTarget),
+          hasSecondary: true,
+          secondaryLabel: 'XHĐ',
+          secondaryValText: `${r.monthActual}/${r.monthTarget}`,
+          secondaryPct: calcPct(r.monthActual, r.monthTarget),
+        });
+      })
+      .join('');
+
+    const srDvptRows = srDvptMeta
+      .map((m) => {
+        const r = dRows.find((x) => x.id === m.id);
+        if (!r) return '';
+        return renderDualBarRow({
+          editAttr: `data-edit-dvpt="${escapeHtml(r.id)}"`,
+          name: m.label,
+          dayBlueText: r.dayActual > 0 ? `+${formatNum(r.dayActual)} tr` : '',
+          dayGreenText: r.dayDvsc > 0 ? `+${formatNum(r.dayDvsc)} SC` : '',
+          backlogText: r.backlog > 0 ? `Tồn ${formatNum(r.backlog)}` : '',
+          primaryLabel: 'Tổng',
+          primaryValText: `${formatNum(r.monthActual)}/${formatNum(r.monthTarget)}`,
+          primaryPct: calcPct(r.monthActual, r.monthTarget),
+          hasSecondary: r.planDvsc > 0,
+          secondaryLabel: 'DVSC',
+          secondaryValText: `${formatNum(r.cumDvsc)}/${formatNum(r.planDvsc)}`,
+          secondaryPct: calcPct(r.cumDvsc, r.planDvsc),
+        });
+      })
+      .join('');
+
+    return `
+      <div class="report-frame-box" id="daily-report-frame">
+        <!-- 3 bảng trực quan đặt sát nhau: Dòng xe | DVPT | Showroom (SR) -->
+        <div class="visual-grid-3">
           <div class="visual-panel">
+            <div class="panel-top-banner">
+              <span>THACO AUTO THANH HÓA | BÁO CÁO NGÀY ${escapeHtml(daily.reportDate)}</span>
+              <span class="tag tag-blue" style="font-size:10.5px; padding:1px 6px;">Ngày ${timeInfo.day}/${timeInfo.totalDays} (${timeInfo.pct}% tháng)</span>
+            </div>
             <div class="visual-panel-title">
-              <span>🚗 Tiến độ theo Dòng xe (Ký HĐ vs XHĐ)</span>
+              <span>🚗 Tiến độ Dòng xe (Ký HĐ vs XHĐ)</span>
               <div class="pacing-legend">
                 <span><span class="dot-swatch" style="background:#00529b;"></span>Ký HĐ</span>
                 <span><span class="dot-swatch" style="background:#16a34a;"></span>XHĐ</span>
-                <span><span class="dot-swatch" style="background:#dc2626;"></span>Mốc ${timeInfo.pct}% ngày</span>
+                <span><span class="dot-swatch" style="background:#dc2626;"></span>Mốc ${timeInfo.pct}%</span>
               </div>
             </div>
             ${vBrands
-              .map((r) => {
-                const cPct = Math.min(100, calcPct(r.contractActual, r.contractTarget));
-                const xPct = Math.min(100, calcPct(r.monthActual, r.monthTarget));
-                return `
-                  <div class="bar-row" data-edit-vehicle="${escapeHtml(r.id)}">
-                    <div class="bar-row-head">
-                      <span class="bar-row-name">${escapeHtml(r.name)}</span>
-                      <div class="bar-row-stats">
-                        ${r.dayContract > 0 ? `<span class="delta-pill">+${r.dayContract} Ký</span>` : ''}
-                        ${r.dayActual > 0 ? `<span class="delta-pill green">+${r.dayActual} XHĐ</span>` : ''}
-                        <span><strong style="color:#00529b;">Ký:</strong> <strong>${r.contractActual}/${r.contractTarget}</strong> (${calcPct(r.contractActual, r.contractTarget)}%)</span>
-                        <span><strong style="color:#16a34a;">XHĐ:</strong> <strong>${r.monthActual}/${r.monthTarget}</strong> (${calcPct(r.monthActual, r.monthTarget)}%)</span>
-                        ${r.backlog > 0 ? `<span class="tag tag-amber" style="padding:1px 6px; font-size:10.5px;">Tồn ${r.backlog}</span>` : ''}
-                      </div>
-                    </div>
-                    <div class="dual-track">
-                      <div class="mini-track" title="Ký HĐ: ${calcPct(r.contractActual, r.contractTarget)}%">
-                        <div class="mini-fill primary" style="width:${cPct}%;"></div>
-                        <div class="pacing-marker" style="left:${timeInfo.pct}%;"></div>
-                      </div>
-                      <div class="mini-track" title="XHĐ: ${calcPct(r.monthActual, r.monthTarget)}%">
-                        <div class="mini-fill secondary" style="width:${xPct}%;"></div>
-                        <div class="pacing-marker" style="left:${timeInfo.pct}%;"></div>
-                      </div>
-                    </div>
-                  </div>
-                `;
-              })
+              .map((r) =>
+                renderDualBarRow({
+                  editAttr: `data-edit-vehicle="${escapeHtml(r.id)}"`,
+                  name: r.name,
+                  dayBlueText: r.dayContract > 0 ? `+${r.dayContract} Ký` : '',
+                  dayGreenText: r.dayActual > 0 ? `+${r.dayActual} XHĐ` : '',
+                  backlogText: r.backlog > 0 ? `Tồn ${r.backlog}` : '',
+                  primaryLabel: 'Ký',
+                  primaryValText: `${r.contractActual}/${r.contractTarget}`,
+                  primaryPct: calcPct(r.contractActual, r.contractTarget),
+                  hasSecondary: true,
+                  secondaryLabel: 'XHĐ',
+                  secondaryValText: `${r.monthActual}/${r.monthTarget}`,
+                  secondaryPct: calcPct(r.monthActual, r.monthTarget),
+                })
+              )
               .join('')}
           </div>
 
           <div class="visual-panel">
             <div class="visual-panel-title">
-              <span>🔧 Tiến độ DVPT theo Xưởng / Mảng (Tổng DT vs DVSC)</span>
+              <span>🔧 Tiến độ DVPT theo Xưởng / Mảng</span>
               <div class="pacing-legend">
                 <span><span class="dot-swatch" style="background:#00529b;"></span>Tổng DT</span>
                 <span><span class="dot-swatch" style="background:#16a34a;"></span>DT DVSC</span>
-                <span><span class="dot-swatch" style="background:#dc2626;"></span>Mốc ${timeInfo.pct}% ngày</span>
+                <span><span class="dot-swatch" style="background:#dc2626;"></span>Mốc ${timeInfo.pct}%</span>
               </div>
             </div>
             ${dvItems
-              .map((r) => {
-                const dtPct = Math.min(100, calcPct(r.monthActual, r.monthTarget));
-                const scPct = Math.min(100, calcPct(r.cumDvsc, r.planDvsc));
-                return `
-                  <div class="bar-row" data-edit-dvpt="${escapeHtml(r.id)}">
-                    <div class="bar-row-head">
-                      <span class="bar-row-name">${escapeHtml(r.name)}</span>
-                      <div class="bar-row-stats">
-                        ${r.dayActual > 0 ? `<span class="delta-pill">+${formatNum(r.dayActual)} tr</span>` : ''}
-                        ${r.dayDvsc > 0 ? `<span class="delta-pill green">+${formatNum(r.dayDvsc)} DVSC</span>` : ''}
-                        <span><strong style="color:#00529b;">Tổng:</strong> <strong>${formatNum(r.monthActual)}/${formatNum(r.monthTarget)}</strong> (${calcPct(r.monthActual, r.monthTarget)}%)</span>
-                        ${r.planDvsc > 0 ? `<span><strong style="color:#16a34a;">DVSC:</strong> <strong>${formatNum(r.cumDvsc)}/${formatNum(r.planDvsc)}</strong> (${calcPct(r.cumDvsc, r.planDvsc)}%)</span>` : ''}
-                        ${r.backlog > 0 ? `<span class="tag tag-amber" style="padding:1px 6px; font-size:10.5px;">Tồn ${formatNum(r.backlog)}</span>` : ''}
-                      </div>
-                    </div>
-                    <div class="dual-track">
-                      <div class="mini-track" title="Tổng DT DVPT: ${calcPct(r.monthActual, r.monthTarget)}%">
-                        <div class="mini-fill primary" style="width:${dtPct}%;"></div>
-                        <div class="pacing-marker" style="left:${timeInfo.pct}%;"></div>
-                      </div>
-                      ${
-                        r.planDvsc > 0
-                          ? `
-                        <div class="mini-track" title="DT DVSC: ${calcPct(r.cumDvsc, r.planDvsc)}%">
-                          <div class="mini-fill secondary" style="width:${scPct}%;"></div>
-                          <div class="pacing-marker" style="left:${timeInfo.pct}%;"></div>
-                        </div>
-                      `
-                          : ''
-                      }
-                    </div>
-                  </div>
-                `;
-              })
+              .map((r) =>
+                renderDualBarRow({
+                  editAttr: `data-edit-dvpt="${escapeHtml(r.id)}"`,
+                  name: r.name,
+                  dayBlueText: r.dayActual > 0 ? `+${formatNum(r.dayActual)} tr` : '',
+                  dayGreenText: r.dayDvsc > 0 ? `+${formatNum(r.dayDvsc)} SC` : '',
+                  backlogText: r.backlog > 0 ? `Tồn ${formatNum(r.backlog)}` : '',
+                  primaryLabel: 'Tổng',
+                  primaryValText: `${formatNum(r.monthActual)}/${formatNum(r.monthTarget)}`,
+                  primaryPct: calcPct(r.monthActual, r.monthTarget),
+                  hasSecondary: r.planDvsc > 0,
+                  secondaryLabel: 'DVSC',
+                  secondaryValText: `${formatNum(r.cumDvsc)}/${formatNum(r.planDvsc)}`,
+                  secondaryPct: calcPct(r.cumDvsc, r.planDvsc),
+                })
+              )
               .join('')}
+          </div>
+
+          <div class="visual-panel">
+            <div class="visual-panel-title">
+              <span>🏢 Thực hiện theo Showroom (SR)</span>
+              <div class="pacing-legend">
+                <span><span class="dot-swatch" style="background:#00529b;"></span>Ký/Tổng</span>
+                <span><span class="dot-swatch" style="background:#16a34a;"></span>XHĐ/DVSC</span>
+                <span><span class="dot-swatch" style="background:#dc2626;"></span>Mốc ${timeInfo.pct}%</span>
+              </div>
+            </div>
+            <div class="visual-sub-divider">🚗 KD Xe theo Showroom</div>
+            ${srVehicleRows}
+            <div class="visual-sub-divider">🔧 Xưởng DVPT theo Showroom</div>
+            ${srDvptRows}
           </div>
         </div>
 
         <!-- Bảng chi tiết đầy đủ cột cho Kinh doanh Xe (cố định cột tên, chia màu nhóm rõ ràng) -->
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin:12px 0 8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin:8px 0 6px;">
           <div style="font-weight:700; font-size:13px; color:var(--accent);">
             🚗 CHI TIẾT KINH DOANH XE THEO NGÀY &amp; LŨY KẾ (Nhấn vào dòng để cập nhật số liệu)
           </div>
@@ -272,7 +350,7 @@
             <button type="button" class="btn btn-blue btn-sm" data-capture-section="all">📸 Chụp toàn bộ BC (.png)</button>
           </div>
         </div>
-        <div class="table-wrap" style="margin-bottom:16px;">
+        <div class="table-wrap" style="margin-bottom:10px;">
           <table class="exec-table">
             <thead>
               <tr>
