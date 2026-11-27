@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>THACO AUTO Thanh Hóa - Hệ thống Quản trị Kế hoạch &amp; Điều hành</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232383e2'/%3E%3Cstop offset='100%25' stop-color='%230ea5e9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M7 21l6-6 4 4 8-9' fill='none' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 10h4v4' fill='none' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles/tokens.css" />
+  <link rel="stylesheet" href="./styles/app.css" />
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+    <!-- Left Sidebar (THACO AUTO Notion-style) -->
+    <aside id="sidebar" class="sidebar" aria-label="Điều hướng hệ thống">
+      <div class="sidebar-header">
+        <a href="#/overview" class="workspace-brand">
+          <span class="brand-logo" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+          </span>
+          <span class="workspace-meta">
+            <span class="workspace-name" id="sidebar-workspace-name">THACO AUTO Thanh Hóa</span>
+            <span class="workspace-sub">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span id="sidebar-unit-sub">Nghiệp vụ Kế hoạch</span>
+            </span>
+          </span>
+        </a>
+        <button id="sidebar-collapse-btn" class="icon-btn" type="button" title="Thu gọn thanh bên" aria-label="Thu gọn thanh bên">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Không gian làm việc</div>
+          <a href="#/overview" class="nav-item" data-route="overview">
+            <span class="nav-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+            </span>
+            <span>Tổng quan Điều hành</span>
+          </a>
+          <a href="#/plans" class="nav-item" data-route="plans">
+            <span class="nav-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>
+            </span>
+            <span>Quản trị Kế hoạch</span>
+            <span class="nav-badge" id="nav-plans-count">0</span>
+          </a>
+          <a href="#/sops" class="nav-item" data-route="sops">
+            <span class="nav-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <span>Quy trình Quy định</span>
+            <span class="nav-badge" id="nav-sops-count">0</span>
+          </a>
+          <a href="#/org" class="nav-item" data-route="org">
+            <span class="nav-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="4" rx="1"/><rect x="3" y="17" width="6" height="4" rx="1"/><rect x="15" y="17" width="6" height="4" rx="1"/><path d="M12 7v5M6 17v-5h12v5"/></svg>
+            </span>
+            <span>Cấu trúc &amp; Chức năng nhiệm vụ</span>
+          </a>
+          <a href="#/digital" class="nav-item" data-route="digital">
+            <span class="nav-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+            </span>
+            <span>Chuyển đổi số &amp; Cải tiến</span>
+            <span class="nav-badge" id="nav-digital-count">0</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Tiêu chuẩn vận hành</div>
+          <div class="pdca-card">
+            <div class="pdca-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              <span>Chu trình PDCA</span>
+            </div>
+            <div class="pdca-desc">
+              Lập KH → Thực thi → Kiểm soát tuân thủ → Tham mưu cải tiến liên tục.
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-tools-row">
+          <button id="data-sync-btn" class="sidebar-mini-btn" type="button" title="Sao lưu, khôi phục hoặc xuất file defaultData.js">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Đồng bộ dữ liệu</span>
+          </button>
+          <a href="#/guide" class="sidebar-mini-btn" title="Hướng dẫn cập nhật &amp; GitHub Pages">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>Hướng dẫn</span>
+          </a>
+        </div>
+        <div class="user-footer-row">
+          <div class="user-info">
+            <span class="user-avatar">TL</span>
+            <div class="user-meta">
+              <div class="user-role">Trợ lý Kế hoạch</div>
+              <div class="user-unit" id="footer-unit-name">THACO AUTO Thanh Hóa</div>
+            </div>
+          </div>
+          <button id="theme-toggle-btn" class="icon-btn" type="button" title="Chuyển chế độ Sáng / Tối" aria-label="Chuyển chế độ Sáng / Tối">
+            <svg id="theme-icon-sun" class="hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Shell -->
+    <div class="main-wrapper">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="mobile-menu-btn" class="icon-btn mobile-only" type="button" aria-label="Mở menu">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <button id="sidebar-expand-btn" class="icon-btn hidden" type="button" title="Mở thanh bên" aria-label="Mở thanh bên">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <nav class="breadcrumbs" id="breadcrumbs" aria-label="Đường dẫn trang"></nav>
+        </div>
+        <div class="topbar-right">
+          <button id="open-search-btn" class="topbar-search-btn" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span class="search-placeholder">Tìm kiếm nhanh...</span>
+            <kbd class="kbd">Ctrl K</kbd>
+          </button>
+          <button id="export-report-btn" class="btn btn-sm" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Xuất báo cáo</span>
+          </button>
+          <button id="global-add-btn" class="btn btn-blue btn-sm" type="button">+ Thêm mục mới</button>
+        </div>
+      </header>
+
+      <main id="page-content" class="page-content" tabindex="-1"></main>
+    </div>
+  </div>
+
+  <!-- Command Palette Modal (Ctrl+K) -->
+  <div id="command-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="command-input-label">
+    <div class="command-box">
+      <div class="command-input-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <label id="command-input-label" class="sr-only" for="command-input">Tìm kiếm kế hoạch, văn bản quy định, chức danh</label>
+        <input id="command-input" type="text" placeholder="Tìm kiếm kế hoạch, văn bản quy trình, chức danh, sáng kiến..." autocomplete="off" />
+        <kbd class="kbd">ESC</kbd>
+      </div>
+      <div id="command-results" class="command-results"></div>
+    </div>
+  </div>
+
+  <!-- Generic Detail / Form Modal -->
+  <div id="app-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="app-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="app-modal-title" class="modal-title"></h2>
+        <button id="app-modal-close" class="icon-btn" type="button" aria-label="Đóng cửa sổ">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="app-modal-body" class="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script defer src="./js/data/defaultData.js"></script>
+  <script defer src="./js/store.js"></script>
+  <script defer src="./js/markdown.js"></script>
+  <script defer src="./js/ui.js"></script>
+  <script defer src="./js/views/overview.js"></script>
+  <script defer src="./js/views/plans.js"></script>
+  <script defer src="./js/views/sops.js"></script>
+  <script defer src="./js/views/org.js"></script>
+  <script defer src="./js/views/digital.js"></script>
+  <script defer src="./js/views/guide.js"></script>
+  <script defer src="./js/app.js"></script>
+</body>
+</html>
