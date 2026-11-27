@@ -169,18 +169,18 @@
           <thead>
             <tr>
               <th rowspan="2" class="hdr-main" style="text-align:left;">KINH DOANH XE (xe)</th>
-              <th rowspan="2" class="hdr-yellow">TH Tháng<br/>10/2025</th>
-              <th rowspan="2">HĐ tồn<br/>chuyển T11</th>
+              <th rowspan="2" class="hdr-yellow">TH T10<br/>/2025</th>
+              <th rowspan="2">Tồn<br/>T11</th>
               <th colspan="5">Chỉ tiêu Tháng ${timeInfo.month}.${timeInfo.year}</th>
               <th colspan="5">Thực hiện ngày</th>
-              <th colspan="7">Lũy kế tháng ${timeInfo.month}.${timeInfo.year} đến ngày ${escapeHtml(daily.reportDate)}</th>
+              <th colspan="7">Lũy kế tháng ${timeInfo.month} đến ${escapeHtml(daily.reportDate)}</th>
               <th colspan="4">Còn lại</th>
             </tr>
             <tr>
-              <th>KHQT</th><th>GDTD</th><th>Ký HĐ mới</th><th>XHĐ</th><th>ĐKM</th>
-              <th>KHQT</th><th>GDTD</th><th>Ký HĐ mới</th><th>XHĐ</th><th>ĐKM</th>
-              <th>KHQT</th><th>GDTD</th><th>Ký HĐ mới</th><th>%TH</th><th>XHĐ</th><th>%TH</th><th>ĐKM</th>
-              <th>KHQT</th><th>GDTD</th><th>HĐ chưa XHĐ</th><th>XHĐ chưa ĐKM</th>
+              <th>KHQT</th><th>GDTD</th><th>Ký HĐ</th><th>XHĐ</th><th>ĐKM</th>
+              <th>KHQT</th><th>GDTD</th><th>Ký HĐ</th><th>XHĐ</th><th>ĐKM</th>
+              <th>KHQT</th><th>GDTD</th><th>Ký HĐ</th><th>%TH</th><th>XHĐ</th><th>%TH</th><th>ĐKM</th>
+              <th>KHQT</th><th>GDTD</th><th>HĐ tồn</th><th>Chưa ĐK</th>
             </tr>
           </thead>
           <tbody>
@@ -206,9 +206,9 @@
                     <td>${formatCellZeroBlank(r.dayDkm)}</td>
                     <td>${formatCellZeroBlank(r.cumKhqt)}</td>
                     <td>${formatCellZeroBlank(r.cumGdtd)}</td>
-                    <td>${formatNum(r.contractActual)}</td>
+                    <td>${formatCellZeroBlank(r.contractActual)}</td>
                     <td class="${cPct !== null && cPct < 80 ? 'pct-red' : cPct !== null ? 'pct-green' : ''}">${cPct !== null ? `${cPct}%` : ''}</td>
-                    <td>${formatNum(r.monthActual)}</td>
+                    <td>${formatCellZeroBlank(r.monthActual)}</td>
                     <td class="${xPct !== null && xPct < 80 ? 'pct-red' : xPct !== null ? 'pct-green' : ''}">${xPct !== null ? `${xPct}%` : ''}</td>
                     <td>${formatCellZeroBlank(r.cumDkm)}</td>
                     <td>${formatCellZeroBlank(r.remKhqt)}</td>
@@ -226,11 +226,11 @@
           <thead>
             <tr>
               <th rowspan="2" class="hdr-main" style="text-align:left;">KINH DOANH DVPT (Triệu đồng)</th>
-              <th rowspan="2" class="hdr-yellow">TH Tháng<br/>10/2025</th>
-              <th rowspan="2">HĐ tồn<br/>chuyển T11</th>
+              <th rowspan="2" class="hdr-yellow">TH T10<br/>/2025</th>
+              <th rowspan="2">Tồn<br/>T11</th>
               <th colspan="3">Chỉ tiêu Tháng ${timeInfo.month}.${timeInfo.year}</th>
               <th colspan="3">Thực hiện ngày</th>
-              <th colspan="5">Lũy kế tháng ${timeInfo.month}.${timeInfo.year} đến ngày ${escapeHtml(daily.reportDate)}</th>
+              <th colspan="5">Lũy kế tháng ${timeInfo.month} đến ${escapeHtml(daily.reportDate)}</th>
               <th colspan="2">Tồn xưởng</th>
             </tr>
             <tr>
@@ -249,21 +249,21 @@
                 return `
                   <tr class="${trCls}" data-edit-dvpt="${escapeHtml(r.id)}" style="cursor:pointer;" title="Nhấn để cập nhật dòng này">
                     <td class="col-name">${escapeHtml(r.name)}</td>
-                    <td class="col-yellow">${formatNum(r.thT10)}</td>
+                    <td class="col-yellow">${formatCellZeroBlank(r.thT10)}</td>
                     <td>${formatCellZeroBlank(r.carryOver)}</td>
-                    <td>${formatNum(r.planVisits)}</td>
-                    <td>${formatNum(r.monthTarget)}</td>
-                    <td>${formatNum(r.planDvsc)}</td>
-                    <td>${formatNum(r.dayVisits)}</td>
-                    <td>${formatNum(r.dayActual)}</td>
-                    <td>${formatNum(r.dayDvsc)}</td>
-                    <td>${formatNum(r.cumVisits)}</td>
-                    <td>${formatNum(r.monthActual)}</td>
+                    <td>${formatCellZeroBlank(r.planVisits)}</td>
+                    <td>${formatCellZeroBlank(r.monthTarget)}</td>
+                    <td>${formatCellZeroBlank(r.planDvsc)}</td>
+                    <td>${formatCellZeroBlank(r.dayVisits)}</td>
+                    <td>${formatCellZeroBlank(r.dayActual)}</td>
+                    <td>${formatCellZeroBlank(r.dayDvsc)}</td>
+                    <td>${formatCellZeroBlank(r.cumVisits)}</td>
+                    <td>${formatCellZeroBlank(r.monthActual)}</td>
                     <td class="${dtPct !== null && dtPct < 80 ? 'pct-red' : dtPct !== null ? 'pct-green' : ''}">${dtPct !== null ? `${dtPct}%` : ''}</td>
-                    <td>${formatNum(r.cumDvsc)}</td>
+                    <td>${formatCellZeroBlank(r.cumDvsc)}</td>
                     <td class="${scPct !== null && scPct < 80 ? 'pct-red' : scPct !== null ? 'pct-green' : ''}">${scPct !== null ? `${scPct}%` : ''}</td>
-                    <td>${formatNum(r.backlogVisits)}</td>
-                    <td>${formatNum(r.backlog)}</td>
+                    <td>${formatCellZeroBlank(r.backlogVisits)}</td>
+                    <td>${formatCellZeroBlank(r.backlog)}</td>
                   </tr>
                 `;
               })
@@ -283,7 +283,7 @@
     const timeInfo = getMonthTimeProgress(daily.reportDate);
 
     const scale = 2;
-    const width = 1480;
+    const width = 1284;
     const rowH = 22;
     const headerH = 44;
     const topBannerH = 48;
@@ -360,9 +360,9 @@
 
           ctx.fillStyle = cell.color || '#111827';
           ctx.font = `${r.isSummary || cell.bold ? 'bold' : r.isSubRow && idx === 0 ? 'italic' : 'normal'} 10.5px "Segoe UI", Arial, sans-serif`;
-          ctx.textAlign = idx === 0 ? 'left' : 'right';
-          const padX = idx === 0 ? (r.isSubRow ? x + 16 : x + 5) : x + w - 4;
-          ctx.fillText(String(cell.text ?? ''), padX, y + 14.5, w - 8);
+          ctx.textAlign = idx === 0 ? 'left' : 'center';
+          const padX = idx === 0 ? (r.isSubRow ? x + 16 : x + 5) : x + w / 2;
+          ctx.fillText(String(cell.text ?? ''), padX, y + 14.5, w - 6);
           x += w;
         });
         y += rowH;
@@ -410,9 +410,9 @@
           { text: formatCellZeroBlank(r.dayDkm) },
           { text: formatCellZeroBlank(r.cumKhqt) },
           { text: formatCellZeroBlank(r.cumGdtd) },
-          { text: formatNum(r.contractActual) },
+          { text: formatCellZeroBlank(r.contractActual) },
           { text: cPct !== null ? `${cPct}%` : '', color: cPct !== null && cPct < 80 ? '#dc2626' : '#15803d', bold: true },
-          { text: formatNum(r.monthActual) },
+          { text: formatCellZeroBlank(r.monthActual) },
           { text: xPct !== null ? `${xPct}%` : '', color: xPct !== null && xPct < 80 ? '#dc2626' : '#15803d', bold: true },
           { text: formatCellZeroBlank(r.cumDkm) },
           { text: formatCellZeroBlank(r.remKhqt) },
@@ -443,21 +443,21 @@
         const scPct = r.planDvsc > 0 ? Math.round((r.cumDvsc / r.planDvsc) * 100) : null;
         return [
           { text: r.name, bold: r.isSummary },
-          { text: formatNum(r.thT10), bold: true },
+          { text: formatCellZeroBlank(r.thT10), bold: true },
           { text: formatCellZeroBlank(r.carryOver) },
-          { text: formatNum(r.planVisits) },
-          { text: formatNum(r.monthTarget) },
-          { text: formatNum(r.planDvsc) },
-          { text: formatNum(r.dayVisits) },
-          { text: formatNum(r.dayActual) },
-          { text: formatNum(r.dayDvsc) },
-          { text: formatNum(r.cumVisits) },
-          { text: formatNum(r.monthActual) },
+          { text: formatCellZeroBlank(r.planVisits) },
+          { text: formatCellZeroBlank(r.monthTarget) },
+          { text: formatCellZeroBlank(r.planDvsc) },
+          { text: formatCellZeroBlank(r.dayVisits) },
+          { text: formatCellZeroBlank(r.dayActual) },
+          { text: formatCellZeroBlank(r.dayDvsc) },
+          { text: formatCellZeroBlank(r.cumVisits) },
+          { text: formatCellZeroBlank(r.monthActual) },
           { text: dtPct !== null ? `${dtPct}%` : '', color: dtPct !== null && dtPct < 80 ? '#dc2626' : '#15803d', bold: true },
-          { text: formatNum(r.cumDvsc) },
+          { text: formatCellZeroBlank(r.cumDvsc) },
           { text: scPct !== null ? `${scPct}%` : '', color: scPct !== null && scPct < 80 ? '#dc2626' : '#15803d', bold: true },
-          { text: formatNum(r.backlogVisits) },
-          { text: formatNum(r.backlog) },
+          { text: formatCellZeroBlank(r.backlogVisits) },
+          { text: formatCellZeroBlank(r.backlog) },
         ];
       }
     );
