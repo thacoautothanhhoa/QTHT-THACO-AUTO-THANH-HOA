@@ -25,7 +25,6 @@
     tab: 'daily', // 'daily' | 'weekly' | 'goals'
     dailyGroup: 'Tất cả',
     dailySearch: '',
-    reportDisplayMode: 'visual', // 'visual' | 'excel'
     weekId: 'w3',
     weeklyGroup: 'Tất cả',
     mode: 'table',
@@ -164,18 +163,14 @@
     };
 
     return `
-      <div class="report-frame-box" style="padding:18px;">
+      <div class="report-frame-box" style="padding:18px;" id="daily-report-frame">
         <div class="report-frame-head">
           <div>
-            📊 BÁO CÁO CHI TIẾT THEO NGÀY &amp; LŨY KẾ — ${escapeHtml(daily.reportDate)}
+            THACO AUTO THANH HÓA &nbsp;|&nbsp; BÁO CÁO NGÀY ${escapeHtml(daily.reportDate)}
             <span class="tag tag-blue" style="margin-left:6px;">Ngày ${timeInfo.day}/${timeInfo.totalDays} (${timeInfo.pct}% tháng)</span>
           </div>
           <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-            <div class="segmented">
-              <button type="button" data-report-mode="visual" class="${state.reportDisplayMode === 'visual' ? 'active' : ''}">✨ Trực quan &amp; Biểu đồ</button>
-              <button type="button" data-report-mode="excel" class="${state.reportDisplayMode === 'excel' ? 'active' : ''}">📑 Bảng Excel gốc</button>
-            </div>
-            <button id="capture-png-btn" type="button" class="btn btn-blue btn-sm">📸 Chụp ảnh BC (.png)</button>
+            <button id="capture-png-btn" type="button" class="btn btn-blue btn-sm">📸 Chụp &amp; Tải ảnh Báo cáo (.png)</button>
           </div>
         </div>
 
@@ -399,133 +394,6 @@
             </tbody>
           </table>
         </div>
-      </div>
-    `;
-  }
-
-  function renderDailyReportFrame(daily) {
-    const vRows = daily.vehicleRows || [];
-    const dRows = daily.dvptRows || [];
-    const timeInfo = getMonthTimeProgress(daily.reportDate);
-
-    return `
-      <div class="report-frame-box" id="daily-report-frame">
-        <div class="report-frame-head">
-          <div>THACO AUTO THANH HÓA &nbsp;&nbsp;|&nbsp;&nbsp; Ngày báo cáo: ${escapeHtml(daily.reportDate)} (Ngày ${timeInfo.day}/${timeInfo.totalDays} — ${timeInfo.pct}% tháng)</div>
-          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-            <div class="segmented">
-              <button type="button" data-report-mode="visual" class="${state.reportDisplayMode === 'visual' ? 'active' : ''}">✨ Trực quan &amp; Biểu đồ</button>
-              <button type="button" data-report-mode="excel" class="${state.reportDisplayMode === 'excel' ? 'active' : ''}">📑 Bảng Excel gốc</button>
-            </div>
-            <button id="capture-png-btn" type="button" class="btn btn-blue btn-sm">📸 Chụp ảnh BC (.png)</button>
-          </div>
-        </div>
-
-        <table class="report-excel-table">
-          <thead>
-            <tr>
-              <th rowspan="2" class="hdr-main" style="text-align:left;">KINH DOANH XE (xe)</th>
-              <th rowspan="2" class="hdr-yellow">TH T10<br/>/2025</th>
-              <th rowspan="2">Tồn<br/>T11</th>
-              <th colspan="5">Chỉ tiêu Tháng ${timeInfo.month}.${timeInfo.year}</th>
-              <th colspan="5">Thực hiện ngày</th>
-              <th colspan="7">Lũy kế tháng ${timeInfo.month} đến ${escapeHtml(daily.reportDate)}</th>
-              <th colspan="4">Còn lại</th>
-            </tr>
-            <tr>
-              <th>KHQT</th><th>GDTD</th><th>Ký HĐ</th><th>XHĐ</th><th>ĐKM</th>
-              <th>KHQT</th><th>GDTD</th><th>Ký HĐ</th><th>XHĐ</th><th>ĐKM</th>
-              <th>KHQT</th><th>GDTD</th><th>Ký HĐ</th><th>%TH</th><th>XHĐ</th><th>%TH</th><th>ĐKM</th>
-              <th>KHQT</th><th>GDTD</th><th>HĐ tồn</th><th>Chưa ĐK</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${vRows
-              .map((r) => {
-                const cPct = r.contractTarget > 0 ? Math.round((r.contractActual / r.contractTarget) * 100) : null;
-                const xPct = r.monthTarget > 0 ? Math.round((r.monthActual / r.monthTarget) * 100) : null;
-                const trCls = r.isSummary ? 'is-summary' : r.isSubRow ? 'is-sub' : '';
-                return `
-                  <tr class="${trCls}" data-edit-vehicle="${escapeHtml(r.id)}" style="cursor:pointer;" title="Nhấn để cập nhật dòng này">
-                    <td class="col-name">${escapeHtml(r.name)}</td>
-                    <td class="col-yellow">${formatCellZeroBlank(r.thT10)}</td>
-                    <td>${formatCellZeroBlank(r.carryOver)}</td>
-                    <td>${formatCellZeroBlank(r.planKhqt)}</td>
-                    <td>${formatCellZeroBlank(r.planGdtd)}</td>
-                    <td>${formatCellZeroBlank(r.contractTarget)}</td>
-                    <td>${formatCellZeroBlank(r.monthTarget)}</td>
-                    <td>${formatCellZeroBlank(r.planDkm)}</td>
-                    <td>${formatCellZeroBlank(r.dayKhqt)}</td>
-                    <td>${formatCellZeroBlank(r.dayGdtd)}</td>
-                    <td>${formatCellZeroBlank(r.dayContract)}</td>
-                    <td>${formatCellZeroBlank(r.dayActual)}</td>
-                    <td>${formatCellZeroBlank(r.dayDkm)}</td>
-                    <td>${formatCellZeroBlank(r.cumKhqt)}</td>
-                    <td>${formatCellZeroBlank(r.cumGdtd)}</td>
-                    <td>${formatCellZeroBlank(r.contractActual)}</td>
-                    <td class="${cPct !== null && cPct < 80 ? 'pct-red' : cPct !== null ? 'pct-green' : ''}">${cPct !== null ? `${cPct}%` : ''}</td>
-                    <td>${formatCellZeroBlank(r.monthActual)}</td>
-                    <td class="${xPct !== null && xPct < 80 ? 'pct-red' : xPct !== null ? 'pct-green' : ''}">${xPct !== null ? `${xPct}%` : ''}</td>
-                    <td>${formatCellZeroBlank(r.cumDkm)}</td>
-                    <td>${formatCellZeroBlank(r.remKhqt)}</td>
-                    <td>${formatCellZeroBlank(r.remGdtd)}</td>
-                    <td style="font-weight:700;">${formatCellZeroBlank(r.backlog)}</td>
-                    <td>${formatCellZeroBlank(r.xhdNotDkm)}</td>
-                  </tr>
-                `;
-              })
-              .join('')}
-          </tbody>
-        </table>
-
-        <table class="report-excel-table" style="margin-bottom:0;">
-          <thead>
-            <tr>
-              <th rowspan="2" class="hdr-main" style="text-align:left;">KINH DOANH DVPT (Triệu đồng)</th>
-              <th rowspan="2" class="hdr-yellow">TH T10<br/>/2025</th>
-              <th rowspan="2">Tồn<br/>T11</th>
-              <th colspan="3">Chỉ tiêu Tháng ${timeInfo.month}.${timeInfo.year}</th>
-              <th colspan="3">Thực hiện ngày</th>
-              <th colspan="5">Lũy kế tháng ${timeInfo.month} đến ${escapeHtml(daily.reportDate)}</th>
-              <th colspan="2">Tồn xưởng</th>
-            </tr>
-            <tr>
-              <th>Lượt xe</th><th>Tổng DT DVPT</th><th>DT DVSC</th>
-              <th>Lượt xe</th><th>Tổng DT</th><th>DT DVSC</th>
-              <th>Lượt xe</th><th>Tổng DT DVPT</th><th>%TH</th><th>DT DVSC</th><th>%TH</th>
-              <th>Lượt xe tồn</th><th>DT tồn</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${dRows
-              .map((r) => {
-                const dtPct = r.monthTarget > 0 ? Math.round((r.monthActual / r.monthTarget) * 100) : null;
-                const scPct = r.planDvsc > 0 ? Math.round((r.cumDvsc / r.planDvsc) * 100) : null;
-                const trCls = r.isSummary ? 'is-summary' : r.isSubRow ? 'is-sub' : '';
-                return `
-                  <tr class="${trCls}" data-edit-dvpt="${escapeHtml(r.id)}" style="cursor:pointer;" title="Nhấn để cập nhật dòng này">
-                    <td class="col-name">${escapeHtml(r.name)}</td>
-                    <td class="col-yellow">${formatCellZeroBlank(r.thT10)}</td>
-                    <td>${formatCellZeroBlank(r.carryOver)}</td>
-                    <td>${formatCellZeroBlank(r.planVisits)}</td>
-                    <td>${formatCellZeroBlank(r.monthTarget)}</td>
-                    <td>${formatCellZeroBlank(r.planDvsc)}</td>
-                    <td>${formatCellZeroBlank(r.dayVisits)}</td>
-                    <td>${formatCellZeroBlank(r.dayActual)}</td>
-                    <td>${formatCellZeroBlank(r.dayDvsc)}</td>
-                    <td>${formatCellZeroBlank(r.cumVisits)}</td>
-                    <td>${formatCellZeroBlank(r.monthActual)}</td>
-                    <td class="${dtPct !== null && dtPct < 80 ? 'pct-red' : dtPct !== null ? 'pct-green' : ''}">${dtPct !== null ? `${dtPct}%` : ''}</td>
-                    <td>${formatCellZeroBlank(r.cumDvsc)}</td>
-                    <td class="${scPct !== null && scPct < 80 ? 'pct-red' : scPct !== null ? 'pct-green' : ''}">${scPct !== null ? `${scPct}%` : ''}</td>
-                    <td>${formatCellZeroBlank(r.backlogVisits)}</td>
-                    <td>${formatCellZeroBlank(r.backlog)}</td>
-                  </tr>
-                `;
-              })
-              .join('')}
-          </tbody>
-        </table>
       </div>
     `;
   }
@@ -886,7 +754,7 @@
         </div>
       </div>
 
-      ${state.reportDisplayMode === 'visual' ? renderVisualDailyDashboard(daily, vFiltered, dFiltered) : renderDailyReportFrame(daily)}
+      ${renderVisualDailyDashboard(daily, vFiltered, dFiltered)}
 
       <!-- Các nội dung kiểm soát, so sánh ngày hôm trước & chờ cập nhật xuống sau -->
       <div class="panel">
@@ -1410,12 +1278,6 @@
     container.querySelector('#daily-search')?.addEventListener('input', (e) => {
       state.dailySearch = e.target.value;
       ctx.rerender();
-    });
-    container.querySelectorAll('[data-report-mode]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        state.reportDisplayMode = btn.getAttribute('data-report-mode');
-        ctx.rerender();
-      });
     });
     container.querySelector('#capture-png-btn')?.addEventListener('click', () => {
       captureDailySnapshotPng(ctx.data.tracking.daily, 'all');

@@ -427,28 +427,6 @@ details.notion-toggle .toggle-body { margin-top: 10px; padding-top: 10px; border
 .exec-table tr.is-sub td.col-name { padding-left: 20px; font-style: italic; color: var(--text-secondary); }
 .exec-table tbody tr:hover td { background: var(--bg-hover); }
 
-.report-excel-table {
-  width: 100%; border-collapse: collapse; font-size: 10.5px; color: #111827; background: #ffffff; margin-bottom: 12px;
-}
-.report-excel-table th, .report-excel-table td {
-  border: 1px solid #cbd5e1; padding: 4px 5px; text-align: center; white-space: nowrap;
-}
-.report-excel-table th {
-  background: #e8eef7; color: #0f172a; text-align: center; font-weight: 700;
-}
-.report-excel-table th.hdr-main { background: #00529b; color: #ffffff; position: sticky; left: 0; z-index: 3; }
-.report-excel-table th.hdr-yellow { background: #fef08a; color: #111827; }
-.report-excel-table td.col-name {
-  text-align: left; position: sticky; left: 0; background: #ffffff; z-index: 2; border-right: 1px solid #94a3b8;
-}
-.report-excel-table td.col-yellow { background: #fef9c3; font-weight: 700; }
-.report-excel-table tr:nth-child(even) td:not(.col-yellow) { background: #f8fafc; }
-.report-excel-table tr:nth-child(even) td.col-name { background: #f8fafc; }
-.report-excel-table tr.is-summary td { background: #dbeafe !important; font-weight: 700; }
-.report-excel-table tr.is-sub td.col-name { padding-left: 16px; font-style: italic; }
-.report-excel-table td.pct-red { color: #dc2626; font-weight: 700; }
-.report-excel-table td.pct-green { color: #15803d; font-weight: 700; }
-
 @media (max-width: 1100px) {
   .array-status-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .visual-grid-2 { grid-template-columns: 1fr; }
