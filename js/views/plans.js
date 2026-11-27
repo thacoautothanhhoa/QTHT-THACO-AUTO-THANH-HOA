@@ -169,9 +169,6 @@
             THACO AUTO THANH HÓA &nbsp;|&nbsp; BÁO CÁO NGÀY ${escapeHtml(daily.reportDate)}
             <span class="tag tag-blue" style="margin-left:6px;">Ngày ${timeInfo.day}/${timeInfo.totalDays} (${timeInfo.pct}% tháng)</span>
           </div>
-          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-            <button id="capture-png-btn" type="button" class="btn btn-blue btn-sm">📸 Chụp &amp; Tải ảnh Báo cáo (.png)</button>
-          </div>
         </div>
 
         <!-- Biểu đồ so sánh tiến độ trực quan với đường vạch chuẩn % thời gian tháng -->
@@ -1278,9 +1275,6 @@
     container.querySelector('#daily-search')?.addEventListener('input', (e) => {
       state.dailySearch = e.target.value;
       ctx.rerender();
-    });
-    container.querySelector('#capture-png-btn')?.addEventListener('click', () => {
-      captureDailySnapshotPng(ctx.data.tracking.daily, 'all');
     });
     container.querySelectorAll('[data-capture-section]').forEach((btn) => {
       btn.addEventListener('click', () => {
