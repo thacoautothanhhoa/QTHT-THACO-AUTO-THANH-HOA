@@ -263,10 +263,6 @@
         <!-- 3 bảng trực quan đặt sát nhau: Dòng xe | DVPT | Showroom (SR) -->
         <div class="visual-grid-3">
           <div class="visual-panel">
-            <div class="panel-top-banner">
-              <span>THACO AUTO THANH HÓA | BÁO CÁO NGÀY ${escapeHtml(daily.reportDate)}</span>
-              <span class="tag tag-blue" style="font-size:10.5px; padding:1px 6px;">Ngày ${timeInfo.day}/${timeInfo.totalDays} (${timeInfo.pct}% tháng)</span>
-            </div>
             <div class="visual-panel-title">
               <span>🚗 Tiến độ Dòng xe (Ký HĐ vs XHĐ)</span>
               <div class="pacing-legend">
@@ -736,6 +732,14 @@
             <button id="edit-report-date-btn" class="btn btn-sm" type="button">📅 Đổi ngày BC</button>
             <button id="save-prev-baseline-btn" class="btn btn-sm" type="button" title="Lưu số liệu hiện tại làm mốc ngày hôm trước để đối chiếu cho ngày mai">💾 Lưu mốc hôm nay → Hôm qua</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Tiêu đề Báo cáo Ngày ngay trên đầu 4 ô đánh giá theo mảng -->
+      <div class="report-frame-head" style="margin: 0 0 8px; padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-md);">
+        <div>
+          THACO AUTO THANH HÓA &nbsp;|&nbsp; BÁO CÁO NGÀY ${escapeHtml(daily.reportDate)}
+          <span class="tag tag-blue" style="margin-left:6px;">Ngày ${timeInfo.day}/${timeInfo.totalDays} (${timeInfo.pct}% tháng)</span>
         </div>
       </div>
 
