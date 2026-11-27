@@ -104,6 +104,7 @@ window.PP.DEFAULT_DATA = {
     },
   ],
   sops: window.PP.SOPS_CATALOG || [],
+  tracking: window.PP.PLANS_TRACKING || { daily: { items: [], checkpoints: [] }, weekly: { weeks: [], items: [], checkpoints: [] } },
   org: {
     positions: [
       {

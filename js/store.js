@@ -1,5 +1,5 @@
 (function (PP) {
-  const STORAGE_KEY = 'thaco_thanhhoa_portal_v2';
+  const STORAGE_KEY = 'thaco_thanhhoa_portal_v3';
   const THEME_KEY = 'thaco_thanhhoa_theme_v1';
 
   function clone(obj) {
@@ -17,6 +17,7 @@
         advisories: Array.isArray(parsed.advisories) ? parsed.advisories : clone(def.advisories),
         plans: Array.isArray(parsed.plans) ? parsed.plans : clone(def.plans),
         sops: Array.isArray(parsed.sops) ? parsed.sops : clone(def.sops),
+        tracking: parsed.tracking ? parsed.tracking : clone(def.tracking),
         org: parsed.org ? parsed.org : clone(def.org),
         digital: parsed.digital ? parsed.digital : clone(def.digital),
       };

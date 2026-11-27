@@ -20,6 +20,12 @@
     'Ủy quyền': 'tag-blue',
     'Pháp lý / ĐKKD': 'tag-purple',
     'Khác': 'tag-gray',
+    'Đạt (>= 80%)': 'tag-green',
+    'Đạt tiến độ': 'tag-green',
+    'Cần theo dõi': 'tag-amber',
+    'Cảnh báo (< 80%)': 'tag-red',
+    'Quá hạn chốt': 'tag-red',
+    'Đúng hạn': 'tag-green',
   };
 
   function renderTag(label) {

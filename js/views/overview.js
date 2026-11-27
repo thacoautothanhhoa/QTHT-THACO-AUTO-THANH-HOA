@@ -50,6 +50,19 @@
         </div>
       </div>
 
+      <div class="strategy-banner" style="margin-bottom:18px;">
+        <div class="strategy-banner-main">
+          <div class="strategy-banner-title">⏱️ LỊCH ĐÁNH GIÁ KẾ HOẠCH ĐỊNH KỲ</div>
+          <div class="strategy-banner-desc">
+            • <strong>Đánh giá Hàng ngày:</strong> Chốt hoàn thành trước <strong>19:00</strong> hàng ngày (Số liệu mới nhất: ${escapeHtml(data.tracking?.daily?.reportDate || '27/11/2026')}).<br/>
+            • <strong>Đánh giá Hàng tuần:</strong> Chốt hoàn thành vào <strong>12:00 Thứ Hai</strong> hàng tuần (Cảnh báo đỏ nếu &lt; 80% KH tuần).
+          </div>
+        </div>
+        <div class="toolbar-group">
+          <a href="#/plans" class="btn btn-blue btn-sm">Mở Đánh giá Ngày / Tuần →</a>
+        </div>
+      </div>
+
       <div class="panel">
         <div class="section-heading">
           <span>📌 TRỌNG TÂM THAM MƯU BAN GIÁM ĐỐC THACO AUTO THANH HÓA</span>
