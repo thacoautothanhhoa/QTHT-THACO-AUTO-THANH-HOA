@@ -361,33 +361,97 @@ details.notion-toggle .toggle-body { margin-top: 10px; padding-top: 10px; border
 .array-status-card.ready { border-color: var(--callout-tip-border); }
 
 .report-frame-box {
-  background: #ffffff; color: #111827; border: 1px solid #cbd5e1; border-radius: var(--radius-md);
-  padding: 14px; overflow-x: auto; box-shadow: var(--shadow-sm); margin-bottom: 18px;
+  background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: var(--radius-md);
+  padding: 16px; overflow-x: auto; box-shadow: var(--shadow-sm); margin-bottom: 18px;
 }
 .report-frame-head {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-  margin-bottom: 10px; font-weight: 700; font-size: 13px; color: #00529b;
+  margin-bottom: 12px; font-weight: 700; font-size: 13.5px; color: var(--accent);
 }
+
+/* Visual Executive Daily Comparison Charts & Cards */
+.visual-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
+.visual-panel {
+  background: var(--bg-page); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 16px;
+}
+.visual-panel-title {
+  font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px;
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+}
+.pacing-legend { font-size: 11px; color: var(--text-muted); font-weight: 500; display: flex; gap: 10px; align-items: center; }
+.dot-swatch { display: inline-block; width: 8px; height: 8px; border-radius: 99px; margin-right: 4px; }
+
+.bar-row { margin-bottom: 10px; cursor: pointer; padding: 5px 6px; border-radius: var(--radius-sm); transition: background 0.12s ease; }
+.bar-row:hover { background: var(--bg-hover); }
+.bar-row:last-child { margin-bottom: 0; }
+.bar-row-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px; gap: 8px; }
+.bar-row-name { font-weight: 600; color: var(--text-primary); }
+.bar-row-stats { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.dual-track { position: relative; display: flex; flex-direction: column; gap: 3px; }
+.mini-track { position: relative; height: 7px; background: var(--bg-subtle); border-radius: 99px; overflow: visible; }
+.mini-fill { height: 100%; border-radius: 99px; transition: width 0.3s ease; }
+.mini-fill.primary { background: #00529b; }
+.mini-fill.secondary { background: #16a34a; }
+.mini-fill.warn { background: #d97706; }
+.mini-fill.danger { background: #dc2626; }
+.pacing-marker {
+  position: absolute; top: -3px; bottom: -3px; width: 2px; background: #dc2626; opacity: 0.7; border-radius: 2px; pointer-events: none;
+}
+
+.delta-pill {
+  display: inline-flex; align-items: center; padding: 1px 6px; border-radius: 99px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  background: var(--tag-blue-bg); color: var(--tag-blue-text);
+}
+.delta-pill.green { background: var(--tag-green-bg); color: var(--tag-green-text); }
+
+.exec-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.exec-table th {
+  text-align: center; font-size: 11px; font-weight: 700; color: var(--text-secondary);
+  padding: 7px 8px; border-bottom: 2px solid var(--border-strong); background: var(--bg-sidebar); white-space: nowrap;
+}
+.exec-table th.grp-plan { background: rgba(0, 82, 155, 0.08); color: var(--accent); }
+.exec-table th.grp-day { background: rgba(14, 165, 233, 0.12); color: var(--cyan); }
+.exec-table th.grp-cum { background: rgba(22, 163, 74, 0.09); }
+.exec-table th.grp-rem { background: rgba(217, 119, 6, 0.1); }
+.exec-table td {
+  padding: 7px 8px; border-bottom: 1px solid var(--border-subtle); text-align: center; white-space: nowrap;
+}
+.exec-table td.col-name, .exec-table th.col-name {
+  text-align: left; position: sticky; left: 0; background: var(--bg-elevated); z-index: 2; border-right: 1px solid var(--border-subtle);
+}
+.exec-table th.col-name { background: var(--bg-sidebar); z-index: 3; }
+.exec-table tr.is-summary td { background: var(--bg-subtle); font-weight: 700; }
+.exec-table tr.is-summary td.col-name { background: var(--bg-subtle); }
+.exec-table tr.is-sub td.col-name { padding-left: 20px; font-style: italic; color: var(--text-secondary); }
+.exec-table tbody tr:hover td { background: var(--bg-hover); }
+
 .report-excel-table {
   width: 100%; border-collapse: collapse; font-size: 10.5px; color: #111827; background: #ffffff; margin-bottom: 12px;
 }
 .report-excel-table th, .report-excel-table td {
-  border: 1px solid #94a3b8; padding: 3px 4px; text-align: center; white-space: nowrap;
+  border: 1px solid #cbd5e1; padding: 4px 5px; text-align: center; white-space: nowrap;
 }
 .report-excel-table th {
-  background: #fff2cc; color: #111827; text-align: center; font-weight: 700;
+  background: #e8eef7; color: #0f172a; text-align: center; font-weight: 700;
 }
-.report-excel-table th.hdr-main { background: #e8eef7; color: #003e78; }
-.report-excel-table th.hdr-yellow { background: #ffff00; }
-.report-excel-table td.col-name { text-align: left; }
-.report-excel-table td.col-yellow { background: #ffff99; font-weight: 700; }
-.report-excel-table tr.is-summary td { background: #dbeafe; font-weight: 700; }
+.report-excel-table th.hdr-main { background: #00529b; color: #ffffff; position: sticky; left: 0; z-index: 3; }
+.report-excel-table th.hdr-yellow { background: #fef08a; color: #111827; }
+.report-excel-table td.col-name {
+  text-align: left; position: sticky; left: 0; background: #ffffff; z-index: 2; border-right: 1px solid #94a3b8;
+}
+.report-excel-table td.col-yellow { background: #fef9c3; font-weight: 700; }
+.report-excel-table tr:nth-child(even) td:not(.col-yellow) { background: #f8fafc; }
+.report-excel-table tr:nth-child(even) td.col-name { background: #f8fafc; }
+.report-excel-table tr.is-summary td { background: #dbeafe !important; font-weight: 700; }
 .report-excel-table tr.is-sub td.col-name { padding-left: 16px; font-style: italic; }
 .report-excel-table td.pct-red { color: #dc2626; font-weight: 700; }
 .report-excel-table td.pct-green { color: #15803d; font-weight: 700; }
 
 @media (max-width: 1100px) {
   .array-status-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .visual-grid-2 { grid-template-columns: 1fr; }
 }
 
 /* Modals & Command Palette */
