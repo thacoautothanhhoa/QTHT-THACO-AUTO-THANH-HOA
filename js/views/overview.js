@@ -117,19 +117,25 @@
             <a href="#/sops" class="btn btn-sm">Xem tất cả</a>
           </div>
           ${data.sops
-            .slice(0, 4)
+            .slice(0, 5)
             .map(
               (s) => `
             <div style="padding:10px 0; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
               <div>
-                <div style="display:flex; gap:6px; align-items:center; margin-bottom:3px;">
+                <div style="display:flex; gap:6px; align-items:center; margin-bottom:3px; flex-wrap:wrap;">
                   <span class="code-pill">${escapeHtml(s.number)}</span>
                   ${renderTag(s.docType)}
                 </div>
                 <div style="font-weight:600; font-size:13px;">${escapeHtml(s.title)}</div>
-                <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${escapeHtml(s.dept)} • ${escapeHtml(s.issuedDate)}</div>
+                <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${escapeHtml(s.domain || s.dept)} • ${escapeHtml(s.issuedDate || '—')}</div>
               </div>
-              <a href="#/sops" class="btn btn-sm">Xem</a>
+              <div style="display:flex; gap:5px; flex-shrink:0;">
+                ${
+                  s.driveUrl
+                    ? `<a href="${escapeHtml(s.downloadUrl || s.driveUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-blue btn-sm">⬇ Tải</a>`
+                    : `<a href="#/sops" class="btn btn-sm">Xem</a>`
+                }
+              </div>
             </div>
           `
             )

@@ -17,6 +17,9 @@
     'Thông báo': 'tag-amber',
     'Hướng dẫn': 'tag-purple',
     'Quy chế': 'tag-red',
+    'Ủy quyền': 'tag-blue',
+    'Pháp lý / ĐKKD': 'tag-purple',
+    'Khác': 'tag-gray',
   };
 
   function renderTag(label) {
