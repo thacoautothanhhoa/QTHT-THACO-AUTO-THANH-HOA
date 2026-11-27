@@ -186,7 +186,6 @@
               .map((r) => {
                 const cPct = Math.min(100, calcPct(r.contractActual, r.contractTarget));
                 const xPct = Math.min(100, calcPct(r.monthActual, r.monthTarget));
-                const xColorCls = xPct >= 80 ? 'secondary' : xPct >= 50 ? 'warn' : 'danger';
                 return `
                   <div class="bar-row" data-edit-vehicle="${escapeHtml(r.id)}">
                     <div class="bar-row-head">
@@ -194,8 +193,8 @@
                       <div class="bar-row-stats">
                         ${r.dayContract > 0 ? `<span class="delta-pill">+${r.dayContract} Ký</span>` : ''}
                         ${r.dayActual > 0 ? `<span class="delta-pill green">+${r.dayActual} XHĐ</span>` : ''}
-                        <span>Ký: <strong>${r.contractActual}/${r.contractTarget}</strong> (${calcPct(r.contractActual, r.contractTarget)}%)</span>
-                        <span>XHĐ: <strong>${r.monthActual}/${r.monthTarget}</strong> (${calcPct(r.monthActual, r.monthTarget)}%)</span>
+                        <span><strong style="color:#00529b;">Ký:</strong> <strong>${r.contractActual}/${r.contractTarget}</strong> (${calcPct(r.contractActual, r.contractTarget)}%)</span>
+                        <span><strong style="color:#16a34a;">XHĐ:</strong> <strong>${r.monthActual}/${r.monthTarget}</strong> (${calcPct(r.monthActual, r.monthTarget)}%)</span>
                         ${r.backlog > 0 ? `<span class="tag tag-amber" style="padding:1px 6px; font-size:10.5px;">Tồn ${r.backlog}</span>` : ''}
                       </div>
                     </div>
@@ -205,7 +204,7 @@
                         <div class="pacing-marker" style="left:${timeInfo.pct}%;"></div>
                       </div>
                       <div class="mini-track" title="XHĐ: ${calcPct(r.monthActual, r.monthTarget)}%">
-                        <div class="mini-fill ${xColorCls}" style="width:${xPct}%;"></div>
+                        <div class="mini-fill secondary" style="width:${xPct}%;"></div>
                         <div class="pacing-marker" style="left:${timeInfo.pct}%;"></div>
                       </div>
                     </div>
@@ -228,28 +227,28 @@
               .map((r) => {
                 const dtPct = Math.min(100, calcPct(r.monthActual, r.monthTarget));
                 const scPct = Math.min(100, calcPct(r.cumDvsc, r.planDvsc));
-                const dtCls = dtPct >= 80 ? 'secondary' : dtPct >= 50 ? 'warn' : 'danger';
                 return `
                   <div class="bar-row" data-edit-dvpt="${escapeHtml(r.id)}">
                     <div class="bar-row-head">
                       <span class="bar-row-name">${escapeHtml(r.name)}</span>
                       <div class="bar-row-stats">
-                        ${r.dayActual > 0 ? `<span class="delta-pill green">+${formatNum(r.dayActual)} tr</span>` : ''}
-                        <span>Tổng: <strong>${formatNum(r.monthActual)}/${formatNum(r.monthTarget)}</strong> (${calcPct(r.monthActual, r.monthTarget)}%)</span>
-                        ${r.planDvsc > 0 ? `<span>DVSC: <strong>${formatNum(r.cumDvsc)}/${formatNum(r.planDvsc)}</strong> (${calcPct(r.cumDvsc, r.planDvsc)}%)</span>` : ''}
+                        ${r.dayActual > 0 ? `<span class="delta-pill">+${formatNum(r.dayActual)} tr</span>` : ''}
+                        ${r.dayDvsc > 0 ? `<span class="delta-pill green">+${formatNum(r.dayDvsc)} DVSC</span>` : ''}
+                        <span><strong style="color:#00529b;">Tổng:</strong> <strong>${formatNum(r.monthActual)}/${formatNum(r.monthTarget)}</strong> (${calcPct(r.monthActual, r.monthTarget)}%)</span>
+                        ${r.planDvsc > 0 ? `<span><strong style="color:#16a34a;">DVSC:</strong> <strong>${formatNum(r.cumDvsc)}/${formatNum(r.planDvsc)}</strong> (${calcPct(r.cumDvsc, r.planDvsc)}%)</span>` : ''}
                         ${r.backlog > 0 ? `<span class="tag tag-amber" style="padding:1px 6px; font-size:10.5px;">Tồn ${formatNum(r.backlog)}</span>` : ''}
                       </div>
                     </div>
                     <div class="dual-track">
                       <div class="mini-track" title="Tổng DT DVPT: ${calcPct(r.monthActual, r.monthTarget)}%">
-                        <div class="mini-fill ${dtCls}" style="width:${dtPct}%;"></div>
+                        <div class="mini-fill primary" style="width:${dtPct}%;"></div>
                         <div class="pacing-marker" style="left:${timeInfo.pct}%;"></div>
                       </div>
                       ${
                         r.planDvsc > 0
                           ? `
                         <div class="mini-track" title="DT DVSC: ${calcPct(r.cumDvsc, r.planDvsc)}%">
-                          <div class="mini-fill primary" style="width:${scPct}%;"></div>
+                          <div class="mini-fill secondary" style="width:${scPct}%;"></div>
                           <div class="pacing-marker" style="left:${timeInfo.pct}%;"></div>
                         </div>
                       `
@@ -375,8 +374,8 @@
                     <td class="mono">${formatCellZeroBlank(r.monthTarget)}</td>
                     <td class="mono">${formatCellZeroBlank(r.planDvsc)}</td>
                     <td class="mono">${formatCellZeroBlank(r.dayVisits)}</td>
-                    <td>${r.dayActual ? `<span class="delta-pill green">+${formatNum(r.dayActual)}</span>` : ''}</td>
-                    <td>${r.dayDvsc ? `<span class="delta-pill">+${formatNum(r.dayDvsc)}</span>` : ''}</td>
+                    <td>${r.dayActual ? `<span class="delta-pill">+${formatNum(r.dayActual)}</span>` : ''}</td>
+                    <td>${r.dayDvsc ? `<span class="delta-pill green">+${formatNum(r.dayDvsc)}</span>` : ''}</td>
                     <td class="mono">${formatCellZeroBlank(r.cumVisits)}</td>
                     <td class="mono" style="font-weight:700;">${formatCellZeroBlank(r.monthActual)}</td>
                     <td>${renderPctPill(dtPct)}</td>
