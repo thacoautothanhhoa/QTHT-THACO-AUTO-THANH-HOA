@@ -26,6 +26,10 @@
     'Cảnh báo (< 80%)': 'tag-red',
     'Quá hạn chốt': 'tag-red',
     'Đúng hạn': 'tag-green',
+    'Đã cập nhật': 'tag-green',
+    'Chưa cập nhật': 'tag-red',
+    'Đủ điều kiện tổng hợp': 'tag-green',
+    'Chờ đủ 5 mảng': 'tag-amber',
   };
 
   function renderTag(label) {

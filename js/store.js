@@ -1,5 +1,5 @@
 (function (PP) {
-  const STORAGE_KEY = 'thaco_thanhhoa_portal_v3';
+  const STORAGE_KEY = 'thaco_thanhhoa_portal_v4';
   const THEME_KEY = 'thaco_thanhhoa_theme_v1';
 
   function clone(obj) {

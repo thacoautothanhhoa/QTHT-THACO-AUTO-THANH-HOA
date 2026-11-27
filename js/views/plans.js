@@ -8,14 +8,24 @@
     'Tất cả',
     'Kinh doanh Xe Du lịch',
     'Kinh doanh Xe Tải Bus',
+    'Kinh doanh Xe DL đã QSD',
     'Dịch vụ Phụ tùng Du lịch',
     'Dịch vụ Phụ tùng Tải Bus',
+  ];
+
+  const ARRAY_META = [
+    { key: 'Kinh doanh Xe Du lịch', source: 'vehicle', summaryId: 'v-dl-sum', unit: 'Xe', isVehicle: true },
+    { key: 'Kinh doanh Xe Tải Bus', source: 'vehicle', summaryId: 'v-tb-sum', unit: 'Xe', isVehicle: true },
+    { key: 'Kinh doanh Xe DL đã QSD', source: 'vehicle', summaryId: 'v-qsd-sum', unit: 'Xe', isVehicle: true },
+    { key: 'Dịch vụ Phụ tùng Du lịch', source: 'dvpt', summaryId: 'dv-dl-sum', unit: 'Tr.đ', isVehicle: false },
+    { key: 'Dịch vụ Phụ tùng Tải Bus', source: 'dvpt', summaryId: 'dv-tb-sum', unit: 'Tr.đ', isVehicle: false },
   ];
 
   const state = {
     tab: 'daily', // 'daily' | 'weekly' | 'goals'
     dailyGroup: 'Tất cả',
     dailySearch: '',
+    showSnapshotFrame: true,
     weekId: 'w3',
     weeklyGroup: 'Tất cả',
     mode: 'table',
@@ -23,6 +33,22 @@
     dept: 'all',
     status: 'all',
   };
+
+  function parseDateDMY(str) {
+    const m = String(str || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) return new Date(2026, 10, 27);
+    return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  }
+
+  function getMonthTimeProgress(reportDateStr) {
+    const d = parseDateDMY(reportDateStr);
+    const day = d.getDate();
+    const month = d.getMonth() + 1;
+    const year = d.getFullYear();
+    const totalDays = new Date(year, month, 0).getDate();
+    const pct = Number(((day / totalDays) * 100).toFixed(1));
+    return { day, month, year, totalDays, pct };
+  }
 
   function getDailyScheduleInfo(daily) {
     const now = new Date();
@@ -35,14 +61,14 @@
     if (diffMs > 0) {
       const hrs = Math.floor(diffMs / 3600000);
       const mins = Math.floor((diffMs % 3600000) / 60000);
-      return { badge: 'Cần theo dõi', text: `Hạn chót đánh giá ngày: 19:00 hôm nay (còn ${hrs} giờ ${mins} phút).` };
+      return { badge: 'Cần theo dõi', text: `Mốc chốt báo cáo ngày: 19:00 hàng ngày (còn ${hrs} giờ ${mins} phút).` };
     }
-    return { badge: 'Quá hạn chốt', text: 'Đã qua mốc 19:00 hôm nay — cần rà soát và khóa đánh giá ngày ngay.' };
+    return { badge: 'Quá hạn chốt', text: 'Đã qua mốc 19:00 — kiểm tra các mảng chưa cập nhật và hoàn tất đánh giá ngày.' };
   }
 
   function getWeeklyScheduleInfo(weekly) {
     const now = new Date();
-    const day = now.getDay(); // 0 Sun, 1 Mon
+    const day = now.getDay();
     const allDone = (weekly.checkpoints || []).length > 0 && weekly.checkpoints.every((c) => c.done);
     if (day === 1) {
       const noon = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
@@ -58,122 +84,648 @@
     const daysUntilMon = (8 - day) % 7 || 7;
     const nextMon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilMon, 12, 0, 0);
     const diffHrs = Math.round((nextMon.getTime() - now.getTime()) / 3600000);
-    const dLeft = Math.floor(diffHrs / 24);
-    const hLeft = diffHrs % 24;
     return {
       badge: allDone ? 'Đúng hạn' : 'Cần theo dõi',
-      text: `Mốc đánh giá tuần tiếp theo: 12:00 Thứ Hai (còn ${dLeft} ngày ${hLeft} giờ).`,
+      text: `Mốc đánh giá tuần tiếp theo: 12:00 Thứ Hai (còn ${Math.floor(diffHrs / 24)} ngày ${diffHrs % 24} giờ).`,
     };
   }
 
   function formatNum(val) {
-    const n = Number(val || 0);
+    if (val === '' || val === null || val === undefined) return '';
+    const n = Number(val);
+    if (Number.isNaN(n)) return String(val);
     return Number.isInteger(n) ? n.toLocaleString('vi-VN') : n.toLocaleString('vi-VN', { maximumFractionDigits: 1 });
   }
 
-  function renderDailyTab(ctx) {
-    const daily = ctx.data.tracking?.daily || { items: [], checkpoints: [] };
-    const sched = getDailyScheduleInfo(daily);
-    const q = state.dailySearch.trim().toLowerCase();
-    const filtered = daily.items.filter((it) => {
-      if (state.dailyGroup !== 'Tất cả' && it.group !== state.dailyGroup) return false;
-      if (q && !`${it.name} ${it.group} ${it.note}`.toLowerCase().includes(q)) return false;
-      return true;
+  function formatCellZeroBlank(val) {
+    const n = Number(val || 0);
+    return n === 0 ? '' : formatNum(n);
+  }
+
+  function calcPct(actual, target) {
+    const t = Number(target || 0);
+    const a = Number(actual || 0);
+    if (t <= 0) return 0;
+    return Math.round((a / t) * 100);
+  }
+
+  /**
+   * So sánh từng mảng với số liệu ngày hôm trước để phát hiện mảng chưa cập nhật báo cáo ngày.
+   */
+  function evaluateArrayFreshness(daily) {
+    const prevArrays = daily.previousDay?.arrays || {};
+    const confirmedZero = new Set(daily.confirmedZeroArrays || []);
+
+    return ARRAY_META.map((meta) => {
+      const list = meta.source === 'vehicle' ? daily.vehicleRows || [] : daily.dvptRows || [];
+      const row = list.find((r) => r.id === meta.summaryId) || {};
+      const prev = prevArrays[meta.key] || { prevMonthActual: 0, prevContractActual: 0, prevDvscActual: 0 };
+
+      const currMain = Number(row.monthActual || 0);
+      const currSub = Number(meta.isVehicle ? row.contractActual || 0 : row.cumDvsc || 0);
+      const prevSub = Number(meta.isVehicle ? prev.prevContractActual || 0 : prev.prevDvscActual || 0);
+      const dayMain = Number(row.dayActual || 0);
+      const daySub = Number(meta.isVehicle ? row.dayContract || 0 : row.dayDvsc || 0);
+
+      const deltaMain = currMain - Number(prev.prevMonthActual || 0);
+      const deltaSub = currSub - prevSub;
+      const hasChange = dayMain !== 0 || daySub !== 0 || deltaMain !== 0 || deltaSub !== 0;
+      const isConfirmedZero = confirmedZero.has(meta.key);
+      const updated = hasChange || isConfirmedZero;
+
+      return {
+        ...meta,
+        row,
+        prev,
+        prevSub,
+        currMain,
+        currSub,
+        dayMain,
+        daySub,
+        deltaMain,
+        deltaSub,
+        hasChange,
+        isConfirmedZero,
+        updated,
+      };
     });
+  }
 
-    const summaryIds = ['d-dl-sum', 'd-tb-sum', 'd-dvdl-sum', 'd-dvtb-sum'];
-    const summaryCards = summaryIds
-      .map((id) => daily.items.find((x) => x.id === id))
-      .filter(Boolean);
-
-    const doneChk = daily.checkpoints.filter((c) => c.done).length;
+  function renderDailyReportFrame(daily) {
+    const vRows = daily.vehicleRows || [];
+    const dRows = daily.dvptRows || [];
+    const timeInfo = getMonthTimeProgress(daily.reportDate);
 
     return `
-      <div class="strategy-banner">
-        <div class="strategy-banner-main">
-          <div class="strategy-banner-title">⏱️ ĐÁNH GIÁ THỰC HIỆN HÀNG NGÀY — CHỐT 19:00 MỖI NGÀY</div>
-          <div class="strategy-banner-desc">
-            ${escapeHtml(sched.text)}<br/>
-            Nguồn dữ liệu: <code>${escapeHtml(daily.sourceFile || '')}</code> (Cập nhật số liệu ngày <strong>${escapeHtml(daily.reportDate || '')}</strong>).
+      <div class="report-frame-box" id="daily-report-frame">
+        <div class="report-frame-head">
+          <div>THACO AUTO THANH HÓA &nbsp;&nbsp;|&nbsp;&nbsp; Ngày báo cáo: ${escapeHtml(daily.reportDate)} (Ngày ${timeInfo.day}/${timeInfo.totalDays} — ${timeInfo.pct}% tháng)</div>
+          <div style="display:flex; gap:8px;">
+            <button id="capture-png-btn" type="button" class="btn btn-blue btn-sm">📸 Chụp &amp; Tải ảnh Khung Báo cáo (.png)</button>
           </div>
         </div>
-        <div class="strategy-metrics">
-          <div>
-            ${renderTag(sched.badge)}
-            <div class="strategy-metric-lbl" style="margin-top:6px;">Hoàn thành: ${doneChk}/${daily.checkpoints.length} đầu mối</div>
-          </div>
-        </div>
-      </div>
 
-      <div class="kpi-grid">
-        ${summaryCards
-          .map((c) => {
-            const pct = c.monthTarget > 0 ? Math.round((c.monthActual / c.monthTarget) * 100) : 0;
-            return `
-            <div class="kpi-card">
-              <div class="kpi-label">${escapeHtml(c.name)}</div>
-              <div class="kpi-value">${formatNum(c.monthActual)} / ${formatNum(c.monthTarget)} <span style="font-size:13px; font-weight:500; color:var(--text-muted);">${escapeHtml(c.unit)}</span></div>
-              <div class="kpi-note">Trong ngày: <strong>+${formatNum(c.dayActual)}</strong> • Tồn/HĐ chờ: <strong>${formatNum(c.backlog)}</strong></div>
-              <div style="margin-top:8px;">${renderProgress(pct)}</div>
-            </div>
-          `;
-          })
-          .join('')}
-      </div>
-
-      <div class="toolbar">
-        <div class="pill-bar" style="margin-bottom:0;">
-          ${DAILY_GROUPS.map((g) => `<button type="button" class="filter-pill ${state.dailyGroup === g ? 'active' : ''}" data-daily-group="${escapeHtml(g)}">${escapeHtml(g)}</button>`).join('')}
-        </div>
-        <input id="daily-search" class="input" type="search" placeholder="Lọc chỉ tiêu ngày..." value="${escapeHtml(state.dailySearch)}" style="min-width:210px;" />
-      </div>
-
-      <div class="table-wrap" style="margin-bottom:18px;">
-        <table class="notion-table">
+        <table class="report-excel-table">
           <thead>
             <tr>
-              <th>Chỉ tiêu theo dõi ngày</th>
-              <th>Khối / Mảng</th>
-              <th>KH Tháng</th>
-              <th>TH Ngày</th>
-              <th>Lũy kế Tháng</th>
-              <th>% TH</th>
-              <th>Tồn / HĐ chờ</th>
-              <th>Đánh giá &amp; Ghi chú</th>
+              <th rowspan="2" class="hdr-main" style="text-align:left;">KINH DOANH XE (xe)</th>
+              <th rowspan="2" class="hdr-yellow">TH Tháng<br/>10/2025</th>
+              <th rowspan="2">HĐ tồn<br/>chuyển T11</th>
+              <th colspan="5">Chỉ tiêu Tháng ${timeInfo.month}.${timeInfo.year}</th>
+              <th colspan="5">Thực hiện ngày</th>
+              <th colspan="7">Lũy kế tháng ${timeInfo.month}.${timeInfo.year} đến ngày ${escapeHtml(daily.reportDate)}</th>
+              <th colspan="4">Còn lại</th>
+            </tr>
+            <tr>
+              <th>KHQT</th><th>GDTD</th><th>Ký HĐ mới</th><th>XHĐ</th><th>ĐKM</th>
+              <th>KHQT</th><th>GDTD</th><th>Ký HĐ mới</th><th>XHĐ</th><th>ĐKM</th>
+              <th>KHQT</th><th>GDTD</th><th>Ký HĐ mới</th><th>%TH</th><th>XHĐ</th><th>%TH</th><th>ĐKM</th>
+              <th>KHQT</th><th>GDTD</th><th>HĐ chưa XHĐ</th><th>XHĐ chưa ĐKM</th>
             </tr>
           </thead>
           <tbody>
-            ${filtered
-              .map((it) => {
-                const pct = it.monthTarget > 0 ? Math.round((it.monthActual / it.monthTarget) * 100) : 0;
-                const evalTag = pct >= 85 ? 'Đạt tiến độ' : pct >= 55 ? 'Cần theo dõi' : 'Cảnh báo (< 80%)';
+            ${vRows
+              .map((r) => {
+                const cPct = r.contractTarget > 0 ? Math.round((r.contractActual / r.contractTarget) * 100) : null;
+                const xPct = r.monthTarget > 0 ? Math.round((r.monthActual / r.monthTarget) * 100) : null;
+                const trCls = r.isSummary ? 'is-summary' : r.isSubRow ? 'is-sub' : '';
                 return `
-                <tr data-edit-daily="${escapeHtml(it.id)}" style="cursor:pointer;">
-                  <td><strong>${escapeHtml(it.name)}</strong><div class="row-sub">ĐVT: ${escapeHtml(it.unit)}</div></td>
-                  <td><span class="tag tag-gray">${escapeHtml(it.group)}</span></td>
-                  <td class="mono">${formatNum(it.monthTarget)}</td>
-                  <td class="mono" style="color:var(--accent); font-weight:600;">+${formatNum(it.dayActual)}</td>
-                  <td class="mono">${formatNum(it.monthActual)}</td>
-                  <td>${renderProgress(pct)}</td>
-                  <td class="mono">${formatNum(it.backlog)}</td>
-                  <td style="min-width:220px;">
-                    <div style="margin-bottom:3px;">${renderTag(evalTag)}</div>
-                    <div class="row-sub">${escapeHtml(it.note)}</div>
-                  </td>
-                </tr>
-              `;
+                  <tr class="${trCls}" data-edit-vehicle="${escapeHtml(r.id)}" style="cursor:pointer;" title="Nhấn để cập nhật dòng này">
+                    <td class="col-name">${escapeHtml(r.name)}</td>
+                    <td class="col-yellow">${formatCellZeroBlank(r.thT10)}</td>
+                    <td>${formatCellZeroBlank(r.carryOver)}</td>
+                    <td>${formatCellZeroBlank(r.planKhqt)}</td>
+                    <td>${formatCellZeroBlank(r.planGdtd)}</td>
+                    <td>${formatCellZeroBlank(r.contractTarget)}</td>
+                    <td>${formatCellZeroBlank(r.monthTarget)}</td>
+                    <td>${formatCellZeroBlank(r.planDkm)}</td>
+                    <td>${formatCellZeroBlank(r.dayKhqt)}</td>
+                    <td>${formatCellZeroBlank(r.dayGdtd)}</td>
+                    <td>${formatCellZeroBlank(r.dayContract)}</td>
+                    <td>${formatCellZeroBlank(r.dayActual)}</td>
+                    <td>${formatCellZeroBlank(r.dayDkm)}</td>
+                    <td>${formatCellZeroBlank(r.cumKhqt)}</td>
+                    <td>${formatCellZeroBlank(r.cumGdtd)}</td>
+                    <td>${formatNum(r.contractActual)}</td>
+                    <td class="${cPct !== null && cPct < 80 ? 'pct-red' : cPct !== null ? 'pct-green' : ''}">${cPct !== null ? `${cPct}%` : ''}</td>
+                    <td>${formatNum(r.monthActual)}</td>
+                    <td class="${xPct !== null && xPct < 80 ? 'pct-red' : xPct !== null ? 'pct-green' : ''}">${xPct !== null ? `${xPct}%` : ''}</td>
+                    <td>${formatCellZeroBlank(r.cumDkm)}</td>
+                    <td>${formatCellZeroBlank(r.remKhqt)}</td>
+                    <td>${formatCellZeroBlank(r.remGdtd)}</td>
+                    <td style="font-weight:700;">${formatCellZeroBlank(r.backlog)}</td>
+                    <td>${formatCellZeroBlank(r.xhdNotDkm)}</td>
+                  </tr>
+                `;
+              })
+              .join('')}
+          </tbody>
+        </table>
+
+        <table class="report-excel-table" style="margin-bottom:0;">
+          <thead>
+            <tr>
+              <th rowspan="2" class="hdr-main" style="text-align:left;">KINH DOANH DVPT (Triệu đồng)</th>
+              <th rowspan="2" class="hdr-yellow">TH Tháng<br/>10/2025</th>
+              <th rowspan="2">HĐ tồn<br/>chuyển T11</th>
+              <th colspan="3">Chỉ tiêu Tháng ${timeInfo.month}.${timeInfo.year}</th>
+              <th colspan="3">Thực hiện ngày</th>
+              <th colspan="5">Lũy kế tháng ${timeInfo.month}.${timeInfo.year} đến ngày ${escapeHtml(daily.reportDate)}</th>
+              <th colspan="2">Tồn xưởng</th>
+            </tr>
+            <tr>
+              <th>Lượt xe</th><th>Tổng DT DVPT</th><th>DT DVSC</th>
+              <th>Lượt xe</th><th>Tổng DT</th><th>DT DVSC</th>
+              <th>Lượt xe</th><th>Tổng DT DVPT</th><th>%TH</th><th>DT DVSC</th><th>%TH</th>
+              <th>Lượt xe tồn</th><th>DT tồn</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${dRows
+              .map((r) => {
+                const dtPct = r.monthTarget > 0 ? Math.round((r.monthActual / r.monthTarget) * 100) : null;
+                const scPct = r.planDvsc > 0 ? Math.round((r.cumDvsc / r.planDvsc) * 100) : null;
+                const trCls = r.isSummary ? 'is-summary' : r.isSubRow ? 'is-sub' : '';
+                return `
+                  <tr class="${trCls}" data-edit-dvpt="${escapeHtml(r.id)}" style="cursor:pointer;" title="Nhấn để cập nhật dòng này">
+                    <td class="col-name">${escapeHtml(r.name)}</td>
+                    <td class="col-yellow">${formatNum(r.thT10)}</td>
+                    <td>${formatCellZeroBlank(r.carryOver)}</td>
+                    <td>${formatNum(r.planVisits)}</td>
+                    <td>${formatNum(r.monthTarget)}</td>
+                    <td>${formatNum(r.planDvsc)}</td>
+                    <td>${formatNum(r.dayVisits)}</td>
+                    <td>${formatNum(r.dayActual)}</td>
+                    <td>${formatNum(r.dayDvsc)}</td>
+                    <td>${formatNum(r.cumVisits)}</td>
+                    <td>${formatNum(r.monthActual)}</td>
+                    <td class="${dtPct !== null && dtPct < 80 ? 'pct-red' : dtPct !== null ? 'pct-green' : ''}">${dtPct !== null ? `${dtPct}%` : ''}</td>
+                    <td>${formatNum(r.cumDvsc)}</td>
+                    <td class="${scPct !== null && scPct < 80 ? 'pct-red' : scPct !== null ? 'pct-green' : ''}">${scPct !== null ? `${scPct}%` : ''}</td>
+                    <td>${formatNum(r.backlogVisits)}</td>
+                    <td>${formatNum(r.backlog)}</td>
+                  </tr>
+                `;
               })
               .join('')}
           </tbody>
         </table>
       </div>
+    `;
+  }
+
+  /**
+   * Vẽ khung hình Báo cáo Ngày ra Canvas độ phân giải cao và tải xuống file PNG.
+   */
+  function captureDailySnapshotPng(daily) {
+    const vRows = daily.vehicleRows || [];
+    const dRows = daily.dvptRows || [];
+    const timeInfo = getMonthTimeProgress(daily.reportDate);
+
+    const scale = 2;
+    const width = 1480;
+    const rowH = 22;
+    const headerH = 44;
+    const topBannerH = 48;
+    const gap = 24;
+    const height = topBannerH + headerH + vRows.length * rowH + gap + headerH + dRows.length * rowH + 28;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    // Header Title
+    ctx.fillStyle = '#991b1b';
+    ctx.font = 'bold 15px "Segoe UI", Arial, sans-serif';
+    ctx.fillText('THACO AUTO THANH HÓA', 16, 28);
+    ctx.fillStyle = '#00529b';
+    ctx.fillText(
+      `Ngày báo cáo: ${daily.reportDate}   |   Ngày ${timeInfo.day}/${timeInfo.totalDays} tháng (${timeInfo.pct}% thời gian)`,
+      260,
+      28
+    );
+
+    function drawGridTable(startY, colWidths, topHeaders, subHeaders, rows, drawRowCells) {
+      let y = startY;
+      const totalW = colWidths.reduce((a, b) => a + b, 0);
+      const startX = 12;
+
+      // Top merged header row
+      let x = startX;
+      topHeaders.forEach((h) => {
+        const w = colWidths.slice(h.start, h.start + h.span).reduce((a, b) => a + b, 0);
+        ctx.fillStyle = h.bg || '#fff2cc';
+        ctx.fillRect(x, y, w, 22);
+        ctx.strokeStyle = '#64748b';
+        ctx.strokeRect(x, y, w, 22);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 10.5px "Segoe UI", Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(h.label, x + w / 2, y + 14, w - 6);
+        x += w;
+      });
+      y += 22;
+
+      // Sub header row
+      x = startX;
+      subHeaders.forEach((lbl, idx) => {
+        const w = colWidths[idx];
+        ctx.fillStyle = idx === 1 ? '#ffff00' : '#fff2cc';
+        ctx.fillRect(x, y, w, 22);
+        ctx.strokeStyle = '#64748b';
+        ctx.strokeRect(x, y, w, 22);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 10px "Segoe UI", Arial, sans-serif';
+        ctx.textAlign = idx === 0 ? 'left' : 'center';
+        ctx.fillText(lbl, idx === 0 ? x + 5 : x + w / 2, y + 14, w - 6);
+        x += w;
+      });
+      y += 22;
+
+      // Body rows
+      rows.forEach((r) => {
+        const cells = drawRowCells(r);
+        x = startX;
+        cells.forEach((cell, idx) => {
+          const w = colWidths[idx];
+          ctx.fillStyle = r.isSummary ? '#dbeafe' : idx === 1 ? '#ffff99' : '#ffffff';
+          ctx.fillRect(x, y, w, rowH);
+          ctx.strokeStyle = '#94a3b8';
+          ctx.strokeRect(x, y, w, rowH);
+
+          ctx.fillStyle = cell.color || '#111827';
+          ctx.font = `${r.isSummary || cell.bold ? 'bold' : r.isSubRow && idx === 0 ? 'italic' : 'normal'} 10.5px "Segoe UI", Arial, sans-serif`;
+          ctx.textAlign = idx === 0 ? 'left' : 'right';
+          const padX = idx === 0 ? (r.isSubRow ? x + 16 : x + 5) : x + w - 4;
+          ctx.fillText(String(cell.text ?? ''), padX, y + 14.5, w - 8);
+          x += w;
+        });
+        y += rowH;
+      });
+
+      ctx.strokeStyle = '#00529b';
+      ctx.lineWidth = 1.4;
+      ctx.strokeRect(startX, startY, totalW, y - startY);
+      ctx.lineWidth = 1;
+      return y;
+    }
+
+    const vWidths = [156, 46, 46, 46, 46, 52, 42, 42, 42, 42, 52, 40, 40, 46, 46, 52, 42, 42, 42, 42, 46, 46, 54, 54];
+    // Total vWidths = 1260; scale slightly or pad to fit nicely inside 1480
+    const nextY = drawGridTable(
+      topBannerH,
+      vWidths,
+      [
+        { label: 'KINH DOANH XE (xe)', start: 0, span: 1, bg: '#e8eef7' },
+        { label: 'TH T10/25', start: 1, span: 1, bg: '#ffff00' },
+        { label: 'Tồn T11', start: 2, span: 1 },
+        { label: `Chỉ tiêu Tháng ${timeInfo.month}.${timeInfo.year}`, start: 3, span: 5 },
+        { label: 'Thực hiện ngày', start: 8, span: 5 },
+        { label: `Lũy kế tháng ${timeInfo.month} đến ${daily.reportDate}`, start: 13, span: 7 },
+        { label: 'Còn lại', start: 20, span: 4 },
+      ],
+      ['Nội dung', 'T10/25', 'Tồn', 'KHQT', 'GDTD', 'Ký HĐ', 'XHĐ', 'ĐKM', 'KHQT', 'GDTD', 'Ký HĐ', 'XHĐ', 'ĐKM', 'KHQT', 'GDTD', 'Ký HĐ', '%TH', 'XHĐ', '%TH', 'ĐKM', 'KHQT', 'GDTD', 'HĐ tồn', 'ChưaĐK'],
+      vRows,
+      (r) => {
+        const cPct = r.contractTarget > 0 ? Math.round((r.contractActual / r.contractTarget) * 100) : null;
+        const xPct = r.monthTarget > 0 ? Math.round((r.monthActual / r.monthTarget) * 100) : null;
+        return [
+          { text: r.name, bold: r.isSummary },
+          { text: formatCellZeroBlank(r.thT10), bold: true },
+          { text: formatCellZeroBlank(r.carryOver) },
+          { text: formatCellZeroBlank(r.planKhqt) },
+          { text: formatCellZeroBlank(r.planGdtd) },
+          { text: formatCellZeroBlank(r.contractTarget) },
+          { text: formatCellZeroBlank(r.monthTarget) },
+          { text: formatCellZeroBlank(r.planDkm) },
+          { text: formatCellZeroBlank(r.dayKhqt) },
+          { text: formatCellZeroBlank(r.dayGdtd) },
+          { text: formatCellZeroBlank(r.dayContract) },
+          { text: formatCellZeroBlank(r.dayActual) },
+          { text: formatCellZeroBlank(r.dayDkm) },
+          { text: formatCellZeroBlank(r.cumKhqt) },
+          { text: formatCellZeroBlank(r.cumGdtd) },
+          { text: formatNum(r.contractActual) },
+          { text: cPct !== null ? `${cPct}%` : '', color: cPct !== null && cPct < 80 ? '#dc2626' : '#15803d', bold: true },
+          { text: formatNum(r.monthActual) },
+          { text: xPct !== null ? `${xPct}%` : '', color: xPct !== null && xPct < 80 ? '#dc2626' : '#15803d', bold: true },
+          { text: formatCellZeroBlank(r.cumDkm) },
+          { text: formatCellZeroBlank(r.remKhqt) },
+          { text: formatCellZeroBlank(r.remGdtd) },
+          { text: formatCellZeroBlank(r.backlog), bold: true },
+          { text: formatCellZeroBlank(r.xhdNotDkm) },
+        ];
+      }
+    );
+
+    const dWidths = [180, 62, 62, 68, 84, 72, 68, 72, 72, 72, 84, 58, 72, 58, 72, 72];
+    drawGridTable(
+      nextY + gap,
+      dWidths,
+      [
+        { label: 'KINH DOANH DVPT (Triệu đồng)', start: 0, span: 1, bg: '#e8eef7' },
+        { label: 'TH T10/25', start: 1, span: 1, bg: '#ffff00' },
+        { label: 'Tồn T11', start: 2, span: 1 },
+        { label: `Chỉ tiêu Tháng ${timeInfo.month}.${timeInfo.year}`, start: 3, span: 3 },
+        { label: 'Thực hiện ngày', start: 6, span: 3 },
+        { label: `Lũy kế tháng ${timeInfo.month} đến ${daily.reportDate}`, start: 9, span: 5 },
+        { label: 'Tồn xưởng', start: 14, span: 2 },
+      ],
+      ['Nội dung', 'T10/25', 'Tồn', 'Lượt xe', 'Tổng DT', 'DVSC', 'Lượt', 'Tổng DT', 'DVSC', 'Lượt', 'Tổng DT', '%TH', 'DVSC', '%TH', 'Lượt tồn', 'DT tồn'],
+      dRows,
+      (r) => {
+        const dtPct = r.monthTarget > 0 ? Math.round((r.monthActual / r.monthTarget) * 100) : null;
+        const scPct = r.planDvsc > 0 ? Math.round((r.cumDvsc / r.planDvsc) * 100) : null;
+        return [
+          { text: r.name, bold: r.isSummary },
+          { text: formatNum(r.thT10), bold: true },
+          { text: formatCellZeroBlank(r.carryOver) },
+          { text: formatNum(r.planVisits) },
+          { text: formatNum(r.monthTarget) },
+          { text: formatNum(r.planDvsc) },
+          { text: formatNum(r.dayVisits) },
+          { text: formatNum(r.dayActual) },
+          { text: formatNum(r.dayDvsc) },
+          { text: formatNum(r.cumVisits) },
+          { text: formatNum(r.monthActual) },
+          { text: dtPct !== null ? `${dtPct}%` : '', color: dtPct !== null && dtPct < 80 ? '#dc2626' : '#15803d', bold: true },
+          { text: formatNum(r.cumDvsc) },
+          { text: scPct !== null ? `${scPct}%` : '', color: scPct !== null && scPct < 80 ? '#dc2626' : '#15803d', bold: true },
+          { text: formatNum(r.backlogVisits) },
+          { text: formatNum(r.backlog) },
+        ];
+      }
+    );
+
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `BaoCaoNgay_THACO_ThanhHoa_${daily.reportDate.replace(/\//g, '-')}.png`;
+    a.click();
+    showToast('Đã chụp và tải ảnh Khung hình Báo cáo Ngày (.png)');
+  }
+
+  function renderDailyTab(ctx) {
+    const daily = ctx.data.tracking?.daily || { vehicleRows: [], dvptRows: [], checkpoints: [] };
+    const sched = getDailyScheduleInfo(daily);
+    const timeInfo = getMonthTimeProgress(daily.reportDate);
+    const freshness = evaluateArrayFreshness(daily);
+    const updatedCount = freshness.filter((f) => f.updated).length;
+    const allArraysReady = updatedCount === freshness.length;
+
+    const dlSum = (daily.vehicleRows || []).find((r) => r.id === 'v-dl-sum') || {};
+    const tbSum = (daily.vehicleRows || []).find((r) => r.id === 'v-tb-sum') || {};
+    const qsdSum = (daily.vehicleRows || []).find((r) => r.id === 'v-qsd-sum') || {};
+    const dvDlSum = (daily.dvptRows || []).find((r) => r.id === 'dv-dl-sum') || {};
+    const dvTbSum = (daily.dvptRows || []).find((r) => r.id === 'dv-tb-sum') || {};
+
+    const totalVehiclesContractPlan = Number(dlSum.contractTarget || 0) + Number(tbSum.contractTarget || 0) + Number(qsdSum.contractTarget || 0);
+    const totalVehiclesContractAct = Number(dlSum.contractActual || 0) + Number(tbSum.contractActual || 0) + Number(qsdSum.contractActual || 0);
+    const totalVehiclesXhdPlan = Number(dlSum.monthTarget || 0) + Number(tbSum.monthTarget || 0) + Number(qsdSum.monthTarget || 0);
+    const totalVehiclesXhdAct = Number(dlSum.monthActual || 0) + Number(tbSum.monthActual || 0) + Number(qsdSum.monthActual || 0);
+    const totalBacklogHd = Number(dlSum.backlog || 0) + Number(tbSum.backlog || 0) + Number(qsdSum.backlog || 0);
+
+    const q = state.dailySearch.trim().toLowerCase();
+    const vFiltered = (daily.vehicleRows || []).filter((r) => {
+      if (state.dailyGroup !== 'Tất cả' && r.group !== state.dailyGroup) return false;
+      if (q && !`${r.name} ${r.group}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    const dFiltered = (daily.dvptRows || []).filter((r) => {
+      if (state.dailyGroup !== 'Tất cả' && r.group !== state.dailyGroup) return false;
+      if (q && !`${r.name} ${r.group}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    const doneChk = (daily.checkpoints || []).filter((c) => c.done).length;
+
+    return `
+      <!-- Banner Ngày báo cáo, Tiến độ ngày trong tháng & Chốt 19:00 -->
+      <div class="strategy-banner">
+        <div class="strategy-banner-main">
+          <div class="strategy-banner-title">⏱️ ĐÁNH GIÁ BÁO CÁO NGÀY — CHỐT HOÀN THÀNH 19:00 HÀNG NGÀY</div>
+          <div class="strategy-banner-desc">
+            <strong>Ngày báo cáo:</strong> <span class="mono">${escapeHtml(daily.reportDate)}</span> &nbsp;•&nbsp;
+            <strong>Thời gian tháng đã qua:</strong> Ngày <strong>${timeInfo.day} / ${timeInfo.totalDays}</strong> ngày (<strong>${timeInfo.pct}%</strong> số ngày trong tháng ${timeInfo.month}/${timeInfo.year}).<br/>
+            ${escapeHtml(sched.text)}
+          </div>
+          <div style="margin-top:8px; max-width:440px;">
+            <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:3px;">Tiến độ thời gian tháng (${timeInfo.day}/${timeInfo.totalDays} ngày):</div>
+            ${renderProgress(timeInfo.pct)}
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+          ${renderTag(sched.badge)}
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button id="edit-report-date-btn" class="btn btn-sm" type="button">📅 Đổi ngày BC</button>
+            <button id="save-prev-baseline-btn" class="btn btn-sm" type="button" title="Lưu số liệu hiện tại làm mốc ngày hôm trước để đối chiếu cho ngày mai">💾 Lưu mốc hôm nay → Hôm qua</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Thẻ Đánh giá Trọng tâm: Ký HĐ mới, XHĐ, HĐ chưa XHĐ & DVPT -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Ký HĐ mới (Toàn Công ty)</div>
+          <div class="kpi-value">${totalVehiclesContractAct} / ${totalVehiclesContractPlan} <span style="font-size:13px; color:var(--text-muted);">xe</span></div>
+          <div class="kpi-note">Hôm nay: <strong>+${Number(dlSum.dayContract || 0) + Number(tbSum.dayContract || 0) + Number(qsdSum.dayContract || 0)}</strong> • DL: ${dlSum.contractActual}/${dlSum.contractTarget} • TB: ${tbSum.contractActual}/${tbSum.contractTarget}</div>
+          <div style="margin-top:8px;">${renderProgress(calcPct(totalVehiclesContractAct, totalVehiclesContractPlan))}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Xuất hóa đơn - XHĐ (Toàn Công ty)</div>
+          <div class="kpi-value">${totalVehiclesXhdAct} / ${totalVehiclesXhdPlan} <span style="font-size:13px; color:var(--text-muted);">xe</span></div>
+          <div class="kpi-note">Hôm nay: <strong>+${Number(dlSum.dayActual || 0) + Number(tbSum.dayActual || 0) + Number(qsdSum.dayActual || 0)}</strong> • Chênh thời gian tháng: <strong>${(calcPct(totalVehiclesXhdAct, totalVehiclesXhdPlan) - timeInfo.pct).toFixed(1)}%</strong></div>
+          <div style="margin-top:8px;">${renderProgress(calcPct(totalVehiclesXhdAct, totalVehiclesXhdPlan))}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Note: HĐ tồn còn lại (Chưa XHĐ)</div>
+          <div class="kpi-value" style="color:var(--accent);">${totalBacklogHd} <span style="font-size:13px; color:var(--text-muted);">HĐ</span></div>
+          <div class="kpi-note">Xe Du lịch: <strong>${dlSum.backlog} HĐ</strong> (KIA ${vFiltered.find((x)=>x.id==='v-kia')?.backlog ?? 17}, Mazda 43, BMW 3) • Tải Bus: <strong>${tbSum.backlog} HĐ</strong></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Kinh doanh DVPT (Tổng DT &amp; DT DVSC)</div>
+          <div class="kpi-value">${formatNum(Number(dvDlSum.monthActual || 0) + Number(dvTbSum.monthActual || 0))} <span style="font-size:13px; color:var(--text-muted);">tr.đ</span></div>
+          <div class="kpi-note">
+            DT DVSC: <strong>${formatNum(Number(dvDlSum.cumDvsc || 0) + Number(dvTbSum.cumDvsc || 0))} / ${formatNum(Number(dvDlSum.planDvsc || 0) + Number(dvTbSum.planDvsc || 0))} tr.đ (${calcPct(Number(dvDlSum.cumDvsc || 0) + Number(dvTbSum.cumDvsc || 0), Number(dvDlSum.planDvsc || 0) + Number(dvTbSum.planDvsc || 0))}%)</strong><br/>
+            Note Tồn xưởng: <strong>${formatNum(Number(dvDlSum.backlogVisits || 0) + Number(dvTbSum.backlogVisits || 0))} lượt • ${formatNum(Number(dvDlSum.backlog || 0) + Number(dvTbSum.backlog || 0))} tr.đ</strong>
+          </div>
+          <div style="margin-top:8px;">${renderProgress(calcPct(Number(dvDlSum.monthActual || 0) + Number(dvTbSum.monthActual || 0), Number(dvDlSum.monthTarget || 0) + Number(dvTbSum.monthTarget || 0)))}</div>
+        </div>
+      </div>
+
+      <!-- Cảnh báo So sánh Ngày hôm trước (Phát hiện mảng chưa cập nhật) -->
+      <div class="panel">
+        <div class="section-heading">
+          <span>🔍 Kiểm soát Cập nhật Theo Mảng (So sánh với ngày hôm trước: ${escapeHtml(daily.previousDay?.reportDate || '26/11/2026')})</span>
+          ${renderTag(allArraysReady ? 'Đủ điều kiện tổng hợp' : 'Chờ đủ 5 mảng')}
+        </div>
+        <div class="array-status-grid">
+          ${freshness
+            .map(
+              (f) => `
+            <div class="array-status-card ${f.updated ? 'ready' : 'pending'}">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+                <strong style="font-size:12.5px;">${escapeHtml(f.key)}</strong>
+                ${renderTag(f.updated ? 'Đã cập nhật' : 'Chưa cập nhật')}
+              </div>
+              <div class="mono" style="font-size:11.5px; color:var(--text-secondary);">
+                ${
+                  f.isVehicle
+                    ? `Ký HĐ: +${f.daySub} (Hôm qua ${f.prev.prevContractActual} → ${f.currSub})<br/>XHĐ: +${f.dayMain} (Hôm qua ${f.prev.prevMonthActual} → ${f.currMain})`
+                    : `Tổng DT: +${formatNum(f.dayMain)} (Hôm qua ${formatNum(f.prev.prevMonthActual)} → ${formatNum(f.currMain)})<br/>DT DVSC: +${formatNum(f.daySub)} (Hôm qua ${formatNum(f.prevSub)} → ${formatNum(f.currSub)})`
+                }
+              </div>
+              ${
+                !f.updated
+                  ? `<button type="button" class="btn btn-sm" data-confirm-zero="${escapeHtml(f.key)}" style="margin-top:4px; font-size:11px;">✓ Xác nhận 0 phát sinh</button>`
+                  : f.isConfirmedZero
+                    ? `<span style="font-size:11px; color:var(--tag-green-text);">Đã xác nhận 0 phát sinh ngày ${escapeHtml(daily.reportDate)}</span>`
+                    : ''
+              }
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+
+        ${
+          allArraysReady
+            ? `
+          <div class="callout tip" style="margin:0;">
+            <span class="callout-icon">📊</span>
+            <div class="callout-body" style="width:100%;">
+              <strong>TỔNG HỢP ĐÁNH GIÁ THỰC HIỆN NGÀY ${escapeHtml(daily.reportDate)} (Đã đủ 5/5 mảng — Tiến độ tháng ${timeInfo.pct}%)</strong>
+              <ul style="margin:6px 0 0; padding-left:18px;">
+                <li><strong>Xe Du lịch:</strong> Ký HĐ đạt <strong>${dlSum.contractActual}/${dlSum.contractTarget} (${calcPct(dlSum.contractActual, dlSum.contractTarget)}%)</strong>, XHĐ đạt <strong>${dlSum.monthActual}/${dlSum.monthTarget} (${calcPct(dlSum.monthActual, dlSum.monthTarget)}%)</strong> so với ${timeInfo.pct}% thời gian tháng. <strong>Note: Còn ${dlSum.backlog} HĐ tồn chưa XHĐ</strong> (cần đẩy mạnh giao xe Mazda 43 HĐ &amp; KIA 17 HĐ).</li>
+                <li><strong>Xe Tải Bus:</strong> Ký HĐ đạt <strong>${tbSum.contractActual}/${tbSum.contractTarget} (${calcPct(tbSum.contractActual, tbSum.contractTarget)}%)</strong>, XHĐ đạt <strong>${tbSum.monthActual}/${tbSum.monthTarget} (${calcPct(tbSum.monthActual, tbSum.monthTarget)}%)</strong>. <strong>Note: Còn ${tbSum.backlog} HĐ tồn chưa XHĐ</strong> (SR Hoằng Hóa đạt 83% XHĐ, SR Thọ Xuân mới 16%).</li>
+                <li><strong>Xe DL đã QSD:</strong> Ký HĐ <strong>${qsdSum.contractActual}/${qsdSum.contractTarget} (${calcPct(qsdSum.contractActual, qsdSum.contractTarget)}%)</strong>, XHĐ <strong>${qsdSum.monthActual}/${qsdSum.monthTarget} (${calcPct(qsdSum.monthActual, qsdSum.monthTarget)}%)</strong>, HĐ tồn: <strong>${qsdSum.backlog}</strong>.</li>
+                <li><strong>DVPT Du lịch:</strong> Tổng DT DVPT đạt <strong>${formatNum(dvDlSum.monthActual)}/${formatNum(dvDlSum.monthTarget)} tr.đ (${calcPct(dvDlSum.monthActual, dvDlSum.monthTarget)}%)</strong>, DT DVSC đạt <strong>${formatNum(dvDlSum.cumDvsc)}/${formatNum(dvDlSum.planDvsc)} tr.đ (${calcPct(dvDlSum.cumDvsc, dvDlSum.planDvsc)}%)</strong>. <strong>Note Tồn xưởng: ${formatNum(dvDlSum.backlogVisits)} lượt xe • ${formatNum(dvDlSum.backlog)} tr.đ</strong> (LK + Tồn = ${calcPct(Number(dvDlSum.monthActual) + Number(dvDlSum.backlog), dvDlSum.monthTarget)}%).</li>
+                <li><strong>DVPT Tải Bus:</strong> Tổng DT DVPT đạt <strong>${formatNum(dvTbSum.monthActual)}/${formatNum(dvTbSum.monthTarget)} tr.đ (${calcPct(dvTbSum.monthActual, dvTbSum.monthTarget)}%)</strong>, DT DVSC đạt <strong>${formatNum(dvTbSum.cumDvsc)}/${formatNum(dvTbSum.planDvsc)} tr.đ (${calcPct(dvTbSum.cumDvsc, dvTbSum.planDvsc)}%)</strong>. <strong>Note Tồn xưởng: ${formatNum(dvTbSum.backlogVisits)} lượt xe • ${formatNum(dvTbSum.backlog)} tr.đ</strong> (LK + Tồn = ${calcPct(Number(dvTbSum.monthActual) + Number(dvTbSum.backlog), dvTbSum.monthTarget)}%).</li>
+              </ul>
+            </div>
+          </div>
+        `
+            : `
+          <div class="callout warn" style="margin:0;">
+            <span class="callout-icon">⏳</span>
+            <div class="callout-body">
+              <strong>Chờ cập nhật đầy đủ các mảng (${updatedCount}/5 mảng đã xong) trước khi tổng hợp đánh giá chính thức</strong>
+              Mảng chưa ghi nhận biến động so với ngày ${escapeHtml(daily.previousDay?.reportDate || '')}: <strong>${freshness.filter((x) => !x.updated).map((x) => x.key).join(', ')}</strong>. Hãy cập nhật số liệu ở bảng dưới hoặc nhấn <em>Xác nhận 0 phát sinh</em> nếu trong ngày không phát sinh giao dịch.
+            </div>
+          </div>
+        `
+        }
+      </div>
+
+      <!-- Bảng Đánh giá Trọng tâm Ký HĐ & XHĐ & HĐ tồn -->
+      <div class="toolbar">
+        <div class="pill-bar" style="margin-bottom:0;">
+          ${DAILY_GROUPS.map((g) => `<button type="button" class="filter-pill ${state.dailyGroup === g ? 'active' : ''}" data-daily-group="${escapeHtml(g)}">${escapeHtml(g)}</button>`).join('')}
+        </div>
+        <div class="toolbar-group">
+          <input id="daily-search" class="input" type="search" placeholder="Lọc dòng xe / showroom..." value="${escapeHtml(state.dailySearch)}" style="min-width:190px;" />
+          <button id="toggle-frame-btn" class="btn btn-sm" type="button">${state.showSnapshotFrame ? 'Ẩn khung ảnh BC' : 'Hiện khung ảnh BC'}</button>
+        </div>
+      </div>
+
+      ${state.showSnapshotFrame ? renderDailyReportFrame(daily) : ''}
+
+      <div class="panel">
+        <div class="section-heading">
+          <span>📋 Bảng Đánh giá Trọng tâm Kinh doanh Xe (Ký HĐ mới • XHĐ • HĐ chưa XHĐ)</span>
+          <span style="font-size:12px; color:var(--text-muted);">Nhấn vào dòng bất kỳ để cập nhật số liệu ngày</span>
+        </div>
+        <div class="table-wrap">
+          <table class="notion-table">
+            <thead>
+              <tr>
+                <th>Sản phẩm / Đơn vị</th>
+                <th>Ký HĐ (Ngày)</th>
+                <th>LK Ký HĐ / KH</th>
+                <th>% TH Ký HĐ</th>
+                <th>XHĐ (Ngày)</th>
+                <th>LK XHĐ / KH</th>
+                <th>% TH XHĐ</th>
+                <th>Note: HĐ tồn chưa XHĐ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${vFiltered
+                .map((r) => {
+                  const cPct = calcPct(r.contractActual, r.contractTarget);
+                  const xPct = calcPct(r.monthActual, r.monthTarget);
+                  return `
+                  <tr data-edit-vehicle="${escapeHtml(r.id)}" style="cursor:pointer; ${r.isSummary ? 'background:var(--bg-subtle); font-weight:600;' : ''}">
+                    <td>${r.isSubRow ? '&nbsp;&nbsp;↳ ' : ''}${escapeHtml(r.name)}<div class="row-sub">${escapeHtml(r.group)}</div></td>
+                    <td class="mono" style="color:var(--accent); font-weight:600;">+${formatNum(r.dayContract)}</td>
+                    <td class="mono">${formatNum(r.contractActual)} / ${formatNum(r.contractTarget)}</td>
+                    <td>${r.contractTarget > 0 ? renderProgress(cPct) : '—'}</td>
+                    <td class="mono" style="color:var(--accent); font-weight:600;">+${formatNum(r.dayActual)}</td>
+                    <td class="mono">${formatNum(r.monthActual)} / ${formatNum(r.monthTarget)}</td>
+                    <td>${r.monthTarget > 0 ? renderProgress(xPct) : '—'}</td>
+                    <td><span class="tag ${r.backlog > 10 ? 'tag-amber' : 'tag-gray'}">Còn ${formatNum(r.backlog)} HĐ</span></td>
+                  </tr>
+                `;
+                })
+                .join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-heading">
+          <span>🔧 Bảng Đánh giá Trọng tâm Kinh doanh DVPT (Tổng DT DVPT • DT DVSC • Note Tồn xưởng)</span>
+          <span style="font-size:12px; color:var(--text-muted);">Nhấn vào dòng bất kỳ để cập nhật số liệu ngày</span>
+        </div>
+        <div class="table-wrap">
+          <table class="notion-table">
+            <thead>
+              <tr>
+                <th>Mảng / Xưởng Dịch vụ</th>
+                <th>Tổng DT (Ngày)</th>
+                <th>LK Tổng DT / KH</th>
+                <th>% TH Tổng DT</th>
+                <th>DT DVSC (Ngày)</th>
+                <th>LK DT DVSC / KH</th>
+                <th>% TH DVSC</th>
+                <th>Note: Tồn xưởng</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${dFiltered
+                .map((r) => {
+                  const dtPct = calcPct(r.monthActual, r.monthTarget);
+                  const scPct = calcPct(r.cumDvsc, r.planDvsc);
+                  return `
+                  <tr data-edit-dvpt="${escapeHtml(r.id)}" style="cursor:pointer; ${r.isSummary ? 'background:var(--bg-subtle); font-weight:600;' : ''}">
+                    <td>${r.isSubRow ? '&nbsp;&nbsp;↳ ' : ''}${escapeHtml(r.name)}<div class="row-sub">${escapeHtml(r.group)}</div></td>
+                    <td class="mono" style="color:var(--accent); font-weight:600;">+${formatNum(r.dayActual)}</td>
+                    <td class="mono">${formatNum(r.monthActual)} / ${formatNum(r.monthTarget)}</td>
+                    <td>${r.monthTarget > 0 ? renderProgress(dtPct) : '—'}</td>
+                    <td class="mono" style="color:var(--accent); font-weight:600;">+${formatNum(r.dayDvsc)}</td>
+                    <td class="mono">${formatNum(r.cumDvsc)} / ${formatNum(r.planDvsc)}</td>
+                    <td>${r.planDvsc > 0 ? renderProgress(scPct) : '—'}</td>
+                    <td><span class="tag ${r.backlog > 200 ? 'tag-amber' : 'tag-gray'}">${formatNum(r.backlogVisits)} lượt • ${formatNum(r.backlog)} tr.đ</span></td>
+                  </tr>
+                `;
+                })
+                .join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <div class="panel">
         <div class="section-heading">
           <span>☑️ Checklist Hoàn thành Đánh giá Hàng ngày (Chốt 19:00)</span>
-          <span class="mono" style="font-size:12px; color:var(--text-muted);">${doneChk}/${daily.checkpoints.length} đã chốt</span>
+          <span class="mono" style="font-size:12px; color:var(--text-muted);">${doneChk}/${(daily.checkpoints || []).length} đã chốt</span>
         </div>
-        ${daily.checkpoints
+        ${(daily.checkpoints || [])
           .map(
             (chk) => `
           <label class="checklist-item ${chk.done ? 'checked' : ''}">
@@ -242,7 +794,7 @@
           <tbody>
             ${filtered
               .map((it) => {
-                const wk = (it.byWeek && it.byWeek[activeWeek.id]) || { kh: 0, th: 0, contractKh: 0, contractTh: 0 };
+                const wk = (it.byWeek && it.byWeek[activeWeek.id]) || { kh: 0, th: 0 };
                 const wkPct = wk.kh > 0 ? Math.round((wk.th / wk.kh) * 100) : wk.th > 0 ? 100 : 0;
                 const cumPct = it.monthTarget > 0 ? Math.round((it.cumTo22 / it.monthTarget) * 100) : 0;
                 const wkStatus = wk.kh === 0 && wk.th === 0 ? 'Cần theo dõi' : wkPct >= redBelow ? 'Đạt (>= 80%)' : 'Cảnh báo (< 80%)';
@@ -332,14 +884,8 @@
         <table class="notion-table">
           <thead>
             <tr>
-              <th>Mã số</th>
-              <th>Tên chỉ tiêu / Mục tiêu</th>
-              <th>Phòng ban</th>
-              <th>Kỳ báo cáo</th>
-              <th>Kế hoạch / Thực đạt</th>
-              <th>Tiến độ (%)</th>
-              <th>Trạng thái</th>
-              <th>Tham mưu giải pháp</th>
+              <th>Mã số</th><th>Tên chỉ tiêu / Mục tiêu</th><th>Phòng ban</th><th>Kỳ báo cáo</th>
+              <th>Kế hoạch / Thực đạt</th><th>Tiến độ (%)</th><th>Trạng thái</th><th>Tham mưu giải pháp</th>
             </tr>
           </thead>
           <tbody>
@@ -348,10 +894,7 @@
                 (p) => `
               <tr>
                 <td><span class="code-pill">${escapeHtml(p.code)}</span></td>
-                <td style="min-width:210px;">
-                  <div class="row-title" data-edit-plan="${escapeHtml(p.id)}">${escapeHtml(p.title)}</div>
-                  <div class="row-sub">Hạn: <span class="mono">${escapeHtml(p.deadline)}</span></div>
-                </td>
+                <td style="min-width:210px;"><div class="row-title" data-edit-plan="${escapeHtml(p.id)}">${escapeHtml(p.title)}</div><div class="row-sub">Hạn: <span class="mono">${escapeHtml(p.deadline)}</span></div></td>
                 <td><span class="tag tag-gray">${escapeHtml(p.dept)}</span></td>
                 <td style="white-space:nowrap;">${escapeHtml(p.period)}</td>
                 <td class="mono" style="white-space:nowrap;">${escapeHtml(p.actual)} / ${escapeHtml(p.target)} ${escapeHtml(p.unit)}</td>
@@ -375,30 +918,17 @@
           const items = plans.filter((p) => p.status === status);
           return `
             <div class="kanban-col">
-              <div class="kanban-col-head">
-                ${renderTag(status)}
-                <span class="mono" style="color:var(--text-muted); font-weight:600;">${items.length}</span>
-              </div>
+              <div class="kanban-col-head">${renderTag(status)}<span class="mono" style="color:var(--text-muted); font-weight:600;">${items.length}</span></div>
               ${
                 items.length
                   ? items
                       .map(
                         (p) => `
                     <div class="kanban-card" data-edit-plan="${escapeHtml(p.id)}">
-                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <span class="code-pill">${escapeHtml(p.code)}</span>
-                        <span class="tag tag-gray">${escapeHtml(p.dept)}</span>
-                      </div>
+                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;"><span class="code-pill">${escapeHtml(p.code)}</span><span class="tag tag-gray">${escapeHtml(p.dept)}</span></div>
                       <div style="font-weight:600; font-size:13px; margin-bottom:6px;">${escapeHtml(p.title)}</div>
-                      <div class="mono" style="font-size:11.5px; color:var(--text-muted); margin-bottom:8px;">
-                        Đạt: ${escapeHtml(p.actual)} / ${escapeHtml(p.target)} ${escapeHtml(p.unit)}
-                      </div>
+                      <div class="mono" style="font-size:11.5px; color:var(--text-muted); margin-bottom:8px;">Đạt: ${escapeHtml(p.actual)} / ${escapeHtml(p.target)} ${escapeHtml(p.unit)}</div>
                       ${renderProgress(p.progress)}
-                      ${
-                        p.advisorySolution
-                          ? `<div style="font-size:12px; color:var(--text-secondary); margin-top:8px; padding-top:7px; border-top:1px solid var(--border-subtle);">💡 ${escapeHtml(p.advisorySolution)}</div>`
-                          : ''
-                      }
                     </div>
                   `
                       )
@@ -412,55 +942,87 @@
     `;
   }
 
-  function openDailyEditor(ctx, itemId) {
+  function openVehicleRowEditor(ctx, rowId) {
     const daily = ctx.data.tracking.daily;
-    const item = daily.items.find((x) => x.id === itemId);
-    if (!item) return;
+    const r = (daily.vehicleRows || []).find((x) => x.id === rowId);
+    if (!r) return;
 
     const html = `
-      <form id="daily-edit-form" class="form-grid">
-        <div style="font-weight:700;">${escapeHtml(item.name)} (${escapeHtml(item.group)})</div>
+      <form id="veh-edit-form" class="form-grid">
+        <div style="font-weight:700;">${escapeHtml(r.name)} (${escapeHtml(r.group)})</div>
         <div class="form-row-2">
-          <div class="form-field">
-            <label for="df-day">Thực hiện trong ngày (${escapeHtml(item.unit)})</label>
-            <input id="df-day" class="input" type="number" step="any" required value="${escapeHtml(item.dayActual)}" />
-          </div>
-          <div class="form-field">
-            <label for="df-month">Lũy kế tháng (${escapeHtml(item.unit)})</label>
-            <input id="df-month" class="input" type="number" step="any" required value="${escapeHtml(item.monthActual)}" />
-          </div>
+          <div class="form-field"><label for="ve-dc">Ký HĐ mới trong ngày</label><input id="ve-dc" class="input" type="number" required value="${escapeHtml(r.dayContract)}" /></div>
+          <div class="form-field"><label for="ve-dx">XHĐ trong ngày</label><input id="ve-dx" class="input" type="number" required value="${escapeHtml(r.dayActual)}" /></div>
         </div>
         <div class="form-row-2">
-          <div class="form-field">
-            <label for="df-target">Chỉ tiêu tháng</label>
-            <input id="df-target" class="input" type="number" step="any" required value="${escapeHtml(item.monthTarget)}" />
-          </div>
-          <div class="form-field">
-            <label for="df-backlog">Tồn / HĐ chưa XHĐ</label>
-            <input id="df-backlog" class="input" type="number" step="any" required value="${escapeHtml(item.backlog)}" />
-          </div>
+          <div class="form-field"><label for="ve-cc">Lũy kế Ký HĐ tháng</label><input id="ve-cc" class="input" type="number" required value="${escapeHtml(r.contractActual)}" /></div>
+          <div class="form-field"><label for="ve-cx">Lũy kế XHĐ tháng</label><input id="ve-cx" class="input" type="number" required value="${escapeHtml(r.monthActual)}" /></div>
         </div>
-        <div class="form-field">
-          <label for="df-note">Đánh giá &amp; Ghi chú tham mưu (Chốt 19:00)</label>
-          <textarea id="df-note" class="textarea" rows="3">${escapeHtml(item.note)}</textarea>
+        <div class="form-row-2">
+          <div class="form-field"><label for="ve-bl">HĐ tồn còn lại (Chưa XHĐ)</label><input id="ve-bl" class="input" type="number" required value="${escapeHtml(r.backlog)}" /></div>
+          <div class="form-field"><label for="ve-dk">XHĐ chưa ĐKM</label><input id="ve-dk" class="input" type="number" required value="${escapeHtml(r.xhdNotDkm)}" /></div>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn" id="df-cancel">Hủy</button>
-          <button type="submit" class="btn btn-blue">Lưu số liệu ngày</button>
+          <button type="button" class="btn" id="ve-cancel">Hủy</button>
+          <button type="submit" class="btn btn-blue">Lưu cập nhật</button>
         </div>
       </form>
     `;
 
-    openModal('Cập nhật Đánh giá Hàng ngày (19:00)', html, (body) => {
-      body.querySelector('#df-cancel').addEventListener('click', closeModal);
-      body.querySelector('#daily-edit-form').addEventListener('submit', (e) => {
+    openModal('Cập nhật Số liệu Ngày — Kinh doanh Xe', html, (body) => {
+      body.querySelector('#ve-cancel').addEventListener('click', closeModal);
+      body.querySelector('#veh-edit-form').addEventListener('submit', (e) => {
         e.preventDefault();
-        item.dayActual = Number(body.querySelector('#df-day').value);
-        item.monthActual = Number(body.querySelector('#df-month').value);
-        item.monthTarget = Number(body.querySelector('#df-target').value);
-        item.backlog = Number(body.querySelector('#df-backlog').value);
-        item.note = body.querySelector('#df-note').value.trim();
-        ctx.commit(`Đã cập nhật số liệu ngày: ${item.name}`);
+        r.dayContract = Number(body.querySelector('#ve-dc').value);
+        r.dayActual = Number(body.querySelector('#ve-dx').value);
+        r.contractActual = Number(body.querySelector('#ve-cc').value);
+        r.monthActual = Number(body.querySelector('#ve-cx').value);
+        r.backlog = Number(body.querySelector('#ve-bl').value);
+        r.xhdNotDkm = Number(body.querySelector('#ve-dk').value);
+        ctx.commit(`Đã cập nhật số liệu ngày: ${r.name}`);
+        closeModal();
+      });
+    });
+  }
+
+  function openDvptRowEditor(ctx, rowId) {
+    const daily = ctx.data.tracking.daily;
+    const r = (daily.dvptRows || []).find((x) => x.id === rowId);
+    if (!r) return;
+
+    const html = `
+      <form id="dv-edit-form" class="form-grid">
+        <div style="font-weight:700;">${escapeHtml(r.name)} (${escapeHtml(r.group)})</div>
+        <div class="form-row-2">
+          <div class="form-field"><label for="dv-da">Tổng DT DVPT trong ngày (Tr.đ)</label><input id="dv-da" class="input" type="number" step="any" required value="${escapeHtml(r.dayActual)}" /></div>
+          <div class="form-field"><label for="dv-ds">DT DVSC trong ngày (Tr.đ)</label><input id="dv-ds" class="input" type="number" step="any" required value="${escapeHtml(r.dayDvsc)}" /></div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-field"><label for="dv-ca">Lũy kế Tổng DT DVPT (Tr.đ)</label><input id="dv-ca" class="input" type="number" step="any" required value="${escapeHtml(r.monthActual)}" /></div>
+          <div class="form-field"><label for="dv-cs">Lũy kế DT DVSC (Tr.đ)</label><input id="dv-cs" class="input" type="number" step="any" required value="${escapeHtml(r.cumDvsc)}" /></div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-field"><label for="dv-bv">Lượt xe tồn xưởng</label><input id="dv-bv" class="input" type="number" step="any" required value="${escapeHtml(r.backlogVisits)}" /></div>
+          <div class="form-field"><label for="dv-ba">Doanh thu tồn xưởng (Tr.đ)</label><input id="dv-ba" class="input" type="number" step="any" required value="${escapeHtml(r.backlog)}" /></div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn" id="dv-cancel">Hủy</button>
+          <button type="submit" class="btn btn-blue">Lưu cập nhật</button>
+        </div>
+      </form>
+    `;
+
+    openModal('Cập nhật Số liệu Ngày — DVPT', html, (body) => {
+      body.querySelector('#dv-cancel').addEventListener('click', closeModal);
+      body.querySelector('#dv-edit-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        r.dayActual = Number(body.querySelector('#dv-da').value);
+        r.dayDvsc = Number(body.querySelector('#dv-ds').value);
+        r.monthActual = Number(body.querySelector('#dv-ca').value);
+        r.cumDvsc = Number(body.querySelector('#dv-cs').value);
+        r.backlogVisits = Number(body.querySelector('#dv-bv').value);
+        r.backlog = Number(body.querySelector('#dv-ba').value);
+        ctx.commit(`Đã cập nhật số liệu DVPT: ${r.name}`);
         closeModal();
       });
     });
@@ -476,29 +1038,14 @@
       <form id="weekly-edit-form" class="form-grid">
         <div style="font-weight:700;">${escapeHtml(item.name)} — ${escapeHtml(state.weekId.toUpperCase())}</div>
         <div class="form-row-2">
-          <div class="form-field">
-            <label for="wf-kh">Kế hoạch tuần (${escapeHtml(item.unit)})</label>
-            <input id="wf-kh" class="input" type="number" step="any" required value="${escapeHtml(wk.kh)}" />
-          </div>
-          <div class="form-field">
-            <label for="wf-th">Thực hiện tuần (${escapeHtml(item.unit)})</label>
-            <input id="wf-th" class="input" type="number" step="any" required value="${escapeHtml(wk.th)}" />
-          </div>
+          <div class="form-field"><label for="wf-kh">Kế hoạch tuần (${escapeHtml(item.unit)})</label><input id="wf-kh" class="input" type="number" step="any" required value="${escapeHtml(wk.kh)}" /></div>
+          <div class="form-field"><label for="wf-th">Thực hiện tuần (${escapeHtml(item.unit)})</label><input id="wf-th" class="input" type="number" step="any" required value="${escapeHtml(wk.th)}" /></div>
         </div>
         <div class="form-row-2">
-          <div class="form-field">
-            <label for="wf-cum">Lũy kế thực hiện tháng</label>
-            <input id="wf-cum" class="input" type="number" step="any" required value="${escapeHtml(item.cumTo22)}" />
-          </div>
-          <div class="form-field">
-            <label for="wf-est">Ước thực hiện cả tháng</label>
-            <input id="wf-est" class="input" type="number" step="any" required value="${escapeHtml(item.estMonth)}" />
-          </div>
+          <div class="form-field"><label for="wf-cum">Lũy kế thực hiện tháng</label><input id="wf-cum" class="input" type="number" step="any" required value="${escapeHtml(item.cumTo22)}" /></div>
+          <div class="form-field"><label for="wf-est">Ước thực hiện cả tháng</label><input id="wf-est" class="input" type="number" step="any" required value="${escapeHtml(item.estMonth)}" /></div>
         </div>
-        <div class="form-field">
-          <label for="wf-adv">Tham mưu giải pháp giao ban Thứ Hai (12:00)</label>
-          <textarea id="wf-adv" class="textarea" rows="3">${escapeHtml(item.advisory)}</textarea>
-        </div>
+        <div class="form-field"><label for="wf-adv">Tham mưu giải pháp giao ban Thứ Hai (12:00)</label><textarea id="wf-adv" class="textarea" rows="3">${escapeHtml(item.advisory)}</textarea></div>
         <div class="form-actions">
           <button type="button" class="btn" id="wf-cancel">Hủy</button>
           <button type="submit" class="btn btn-blue">Lưu đánh giá tuần</button>
@@ -510,11 +1057,7 @@
       body.querySelector('#wf-cancel').addEventListener('click', closeModal);
       body.querySelector('#weekly-edit-form').addEventListener('submit', (e) => {
         e.preventDefault();
-        item.byWeek[state.weekId] = {
-          ...wk,
-          kh: Number(body.querySelector('#wf-kh').value),
-          th: Number(body.querySelector('#wf-th').value),
-        };
+        item.byWeek[state.weekId] = { ...wk, kh: Number(body.querySelector('#wf-kh').value), th: Number(body.querySelector('#wf-th').value) };
         item.cumTo22 = Number(body.querySelector('#wf-cum').value);
         item.estMonth = Number(body.querySelector('#wf-est').value);
         item.advisory = body.querySelector('#wf-adv').value.trim();
@@ -527,84 +1070,33 @@
   function openPlanEditor(ctx, planId) {
     const isNew = !planId;
     const existing = isNew
-      ? {
-          id: `kh-${Date.now()}`,
-          code: `KH-${Math.floor(100 + Math.random() * 899)}`,
-          title: '',
-          dept: 'PKD-PC',
-          period: ctx.data.meta.period,
-          target: 100,
-          actual: 0,
-          unit: 'Xe',
-          deadline: '2026-11-30',
-          progress: 0,
-          status: 'Đang thực hiện',
-          advisorySolution: '',
-        }
+      ? { id: `kh-${Date.now()}`, code: `KH-${Math.floor(100 + Math.random() * 899)}`, title: '', dept: 'PKD-PC', period: ctx.data.meta.period, target: 100, actual: 0, unit: 'Xe', deadline: '2026-11-30', progress: 0, status: 'Đang thực hiện', advisorySolution: '' }
       : ctx.data.plans.find((p) => p.id === planId);
-
     if (!existing) return;
 
     const html = `
       <form id="plan-form" class="form-grid">
         <div class="form-row-2">
-          <div class="form-field">
-            <label for="pf-code">Mã chỉ tiêu</label>
-            <input id="pf-code" class="input" required value="${escapeHtml(existing.code)}" />
-          </div>
-          <div class="form-field">
-            <label for="pf-dept">Phòng ban</label>
-            <select id="pf-dept" class="select">
-              ${DEPTS.map((d) => `<option value="${escapeHtml(d)}" ${existing.dept === d ? 'selected' : ''}>${escapeHtml(d)}</option>`).join('')}
-            </select>
-          </div>
+          <div class="form-field"><label for="pf-code">Mã chỉ tiêu</label><input id="pf-code" class="input" required value="${escapeHtml(existing.code)}" /></div>
+          <div class="form-field"><label for="pf-dept">Phòng ban</label><select id="pf-dept" class="select">${DEPTS.map((d) => `<option value="${escapeHtml(d)}" ${existing.dept === d ? 'selected' : ''}>${escapeHtml(d)}</option>`).join('')}</select></div>
         </div>
-        <div class="form-field">
-          <label for="pf-title">Tên mục tiêu / Chỉ tiêu kế hoạch</label>
-          <input id="pf-title" class="input" required value="${escapeHtml(existing.title)}" />
+        <div class="form-field"><label for="pf-title">Tên mục tiêu / Chỉ tiêu kế hoạch</label><input id="pf-title" class="input" required value="${escapeHtml(existing.title)}" /></div>
+        <div class="form-row-2">
+          <div class="form-field"><label for="pf-target">Mục tiêu (Số)</label><input id="pf-target" class="input" type="number" step="any" required value="${escapeHtml(existing.target)}" /></div>
+          <div class="form-field"><label for="pf-actual">Thực đạt (Số)</label><input id="pf-actual" class="input" type="number" step="any" required value="${escapeHtml(existing.actual)}" /></div>
         </div>
         <div class="form-row-2">
-          <div class="form-field">
-            <label for="pf-target">Mục tiêu (Số)</label>
-            <input id="pf-target" class="input" type="number" step="any" required value="${escapeHtml(existing.target)}" />
-          </div>
-          <div class="form-field">
-            <label for="pf-actual">Thực đạt (Số)</label>
-            <input id="pf-actual" class="input" type="number" step="any" required value="${escapeHtml(existing.actual)}" />
-          </div>
+          <div class="form-field"><label for="pf-unit">Đơn vị tính</label><input id="pf-unit" class="input" required value="${escapeHtml(existing.unit)}" /></div>
+          <div class="form-field"><label for="pf-deadline">Hạn chót</label><input id="pf-deadline" class="input" type="date" required value="${escapeHtml(existing.deadline)}" /></div>
         </div>
         <div class="form-row-2">
-          <div class="form-field">
-            <label for="pf-unit">Đơn vị tính</label>
-            <input id="pf-unit" class="input" required value="${escapeHtml(existing.unit)}" />
-          </div>
-          <div class="form-field">
-            <label for="pf-deadline">Hạn chót</label>
-            <input id="pf-deadline" class="input" type="date" required value="${escapeHtml(existing.deadline)}" />
-          </div>
+          <div class="form-field"><label for="pf-status">Trạng thái</label><select id="pf-status" class="select">${STATUSES.map((s) => `<option value="${escapeHtml(s)}" ${existing.status === s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}</select></div>
+          <div class="form-field"><label for="pf-progress">Tiến độ (%): <span id="pf-progress-label">${existing.progress}%</span></label><input id="pf-progress" type="range" min="0" max="100" value="${existing.progress}" style="width:100%; margin-top:8px;" /></div>
         </div>
-        <div class="form-row-2">
-          <div class="form-field">
-            <label for="pf-status">Trạng thái</label>
-            <select id="pf-status" class="select">
-              ${STATUSES.map((s) => `<option value="${escapeHtml(s)}" ${existing.status === s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-field">
-            <label for="pf-progress">Tiến độ (%): <span id="pf-progress-label">${existing.progress}%</span></label>
-            <input id="pf-progress" type="range" min="0" max="100" value="${existing.progress}" style="width:100%; margin-top:8px;" />
-          </div>
-        </div>
-        <div class="form-field">
-          <label for="pf-solution">Ý kiến Tham mưu của Trợ lý Kế hoạch</label>
-          <textarea id="pf-solution" class="textarea" rows="3">${escapeHtml(existing.advisorySolution)}</textarea>
-        </div>
+        <div class="form-field"><label for="pf-solution">Ý kiến Tham mưu của Trợ lý Kế hoạch</label><textarea id="pf-solution" class="textarea" rows="3">${escapeHtml(existing.advisorySolution)}</textarea></div>
         <div class="form-actions" style="justify-content: space-between;">
           ${!isNew ? `<button id="pf-delete-btn" type="button" class="btn" style="color:var(--tag-red-text);">Xóa chỉ tiêu</button>` : `<span></span>`}
-          <div style="display:flex; gap:8px;">
-            <button type="button" class="btn" id="pf-cancel-btn">Hủy</button>
-            <button type="submit" class="btn btn-blue">${isNew ? 'Tạo mục tiêu' : 'Lưu thay đổi'}</button>
-          </div>
+          <div style="display:flex; gap:8px;"><button type="button" class="btn" id="pf-cancel-btn">Hủy</button><button type="submit" class="btn btn-blue">${isNew ? 'Tạo mục tiêu' : 'Lưu thay đổi'}</button></div>
         </div>
       </form>
     `;
@@ -612,19 +1104,6 @@
     openModal(isNew ? 'Chỉ tiêu Kế hoạch mới' : `Chi tiết ${existing.code}`, html, (body) => {
       const range = body.querySelector('#pf-progress');
       const rangeLabel = body.querySelector('#pf-progress-label');
-      const targetIn = body.querySelector('#pf-target');
-      const actualIn = body.querySelector('#pf-actual');
-      const syncAutoPct = () => {
-        const t = Number(targetIn.value);
-        const a = Number(actualIn.value);
-        if (t > 0) {
-          const pct = Math.min(100, Math.round((a / t) * 100));
-          range.value = String(pct);
-          rangeLabel.textContent = `${pct}%`;
-        }
-      };
-      targetIn.addEventListener('input', syncAutoPct);
-      actualIn.addEventListener('input', syncAutoPct);
       range.addEventListener('input', () => {
         rangeLabel.textContent = `${range.value}%`;
       });
@@ -641,22 +1120,17 @@
           code: body.querySelector('#pf-code').value.trim(),
           dept: body.querySelector('#pf-dept').value,
           title: body.querySelector('#pf-title').value.trim(),
-          target: Number(targetIn.value),
-          actual: Number(actualIn.value),
+          target: Number(body.querySelector('#pf-target').value),
+          actual: Number(body.querySelector('#pf-actual').value),
           unit: body.querySelector('#pf-unit').value.trim(),
           deadline: body.querySelector('#pf-deadline').value,
           status: body.querySelector('#pf-status').value,
           progress: Number(range.value),
           advisorySolution: body.querySelector('#pf-solution').value.trim(),
         };
-        if (isNew) {
-          ctx.data.plans.unshift(updated);
-          showToast('Đã tạo chỉ tiêu kế hoạch mới');
-        } else {
-          ctx.data.plans = ctx.data.plans.map((p) => (p.id === updated.id ? updated : p));
-          showToast(`Đã cập nhật ${updated.code}`);
-        }
-        ctx.commit();
+        if (isNew) ctx.data.plans.unshift(updated);
+        else ctx.data.plans = ctx.data.plans.map((p) => (p.id === updated.id ? updated : p));
+        ctx.commit(isNew ? 'Đã tạo chỉ tiêu kế hoạch mới' : `Đã cập nhật ${updated.code}`);
         closeModal();
       });
     });
@@ -683,13 +1157,7 @@
         <button type="button" class="subtab-btn ${state.tab === 'goals' ? 'active' : ''}" data-plans-tab="goals">🎯 Chỉ tiêu &amp; Tham mưu (${ctx.data.plans.length})</button>
       </div>
 
-      ${
-        state.tab === 'daily'
-          ? renderDailyTab(ctx)
-          : state.tab === 'weekly'
-            ? renderWeeklyTab(ctx)
-            : renderGoalsTab(ctx)
-      }
+      ${state.tab === 'daily' ? renderDailyTab(ctx) : state.tab === 'weekly' ? renderWeeklyTab(ctx) : renderGoalsTab(ctx)}
     `;
   }
 
@@ -711,8 +1179,78 @@
       state.dailySearch = e.target.value;
       ctx.rerender();
     });
-    container.querySelectorAll('[data-edit-daily]').forEach((row) => {
-      row.addEventListener('click', () => openDailyEditor(ctx, row.getAttribute('data-edit-daily')));
+    container.querySelector('#toggle-frame-btn')?.addEventListener('click', () => {
+      state.showSnapshotFrame = !state.showSnapshotFrame;
+      ctx.rerender();
+    });
+    container.querySelector('#capture-png-btn')?.addEventListener('click', () => {
+      captureDailySnapshotPng(ctx.data.tracking.daily);
+    });
+
+    container.querySelector('#edit-report-date-btn')?.addEventListener('click', () => {
+      const current = ctx.data.tracking.daily.reportDate;
+      openModal(
+        'Cập nhật Ngày báo cáo',
+        `<form id="rdate-form" class="form-grid">
+          <div class="form-field">
+            <label for="rd-val">Ngày báo cáo (dd/mm/yyyy)</label>
+            <input id="rd-val" class="input" required value="${escapeHtml(current)}" pattern="\\d{1,2}/\\d{1,2}/\\d{4}" placeholder="27/11/2026" />
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn" id="rd-cancel">Hủy</button>
+            <button type="submit" class="btn btn-blue">Cập nhật ngày</button>
+          </div>
+        </form>`,
+        (body) => {
+          body.querySelector('#rd-cancel').addEventListener('click', closeModal);
+          body.querySelector('#rdate-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            ctx.data.tracking.daily.reportDate = body.querySelector('#rd-val').value.trim();
+            ctx.commit('Đã cập nhật Ngày báo cáo');
+            closeModal();
+          });
+        }
+      );
+    });
+
+    container.querySelector('#save-prev-baseline-btn')?.addEventListener('click', () => {
+      const daily = ctx.data.tracking.daily;
+      const newPrev = {};
+      ARRAY_META.forEach((meta) => {
+        const list = meta.source === 'vehicle' ? daily.vehicleRows || [] : daily.dvptRows || [];
+        const row = list.find((r) => r.id === meta.summaryId) || {};
+        newPrev[meta.key] = {
+          prevMonthActual: Number(row.monthActual || 0),
+          prevContractActual: Number(meta.isVehicle ? row.contractActual || 0 : 0),
+          prevDvscActual: Number(meta.isVehicle ? 0 : row.cumDvsc || 0),
+        };
+      });
+      daily.previousDay = { reportDate: daily.reportDate, arrays: newPrev };
+      daily.confirmedZeroArrays = [];
+      (daily.vehicleRows || []).forEach((r) => {
+        r.dayKhqt = 0; r.dayGdtd = 0; r.dayContract = 0; r.dayActual = 0; r.dayDkm = 0;
+      });
+      (daily.dvptRows || []).forEach((r) => {
+        r.dayVisits = 0; r.dayActual = 0; r.dayDvsc = 0;
+      });
+      ctx.commit(`Đã lưu lũy kế ngày ${daily.reportDate} làm mốc ngày hôm trước`);
+    });
+
+    container.querySelectorAll('[data-confirm-zero]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-confirm-zero');
+        const arr = ctx.data.tracking.daily.confirmedZeroArrays || [];
+        if (!arr.includes(key)) arr.push(key);
+        ctx.data.tracking.daily.confirmedZeroArrays = arr;
+        ctx.commit(`Đã xác nhận 0 phát sinh: ${key}`);
+      });
+    });
+
+    container.querySelectorAll('[data-edit-vehicle]').forEach((row) => {
+      row.addEventListener('click', () => openVehicleRowEditor(ctx, row.getAttribute('data-edit-vehicle')));
+    });
+    container.querySelectorAll('[data-edit-dvpt]').forEach((row) => {
+      row.addEventListener('click', () => openDvptRowEditor(ctx, row.getAttribute('data-edit-dvpt')));
     });
     container.querySelectorAll('[data-daily-chk]').forEach((box) => {
       box.addEventListener('change', () => {
