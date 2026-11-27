@@ -12,12 +12,17 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return clone(def);
       const parsed = JSON.parse(raw);
+      const isTrackingCurrent =
+        parsed.tracking &&
+        parsed.tracking.dataVersion &&
+        def.tracking?.dataVersion &&
+        parsed.tracking.dataVersion === def.tracking.dataVersion;
       return {
         meta: { ...clone(def.meta), ...(parsed.meta || {}) },
         advisories: Array.isArray(parsed.advisories) ? parsed.advisories : clone(def.advisories),
         plans: Array.isArray(parsed.plans) ? parsed.plans : clone(def.plans),
         sops: Array.isArray(parsed.sops) ? parsed.sops : clone(def.sops),
-        tracking: parsed.tracking ? parsed.tracking : clone(def.tracking),
+        tracking: isTrackingCurrent ? parsed.tracking : clone(def.tracking),
         org: parsed.org ? parsed.org : clone(def.org),
         digital: parsed.digital ? parsed.digital : clone(def.digital),
       };

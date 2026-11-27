@@ -6,7 +6,10 @@
  */
 window.PP = window.PP || {};
 window.PP.PLANS_TRACKING = {
+  dataVersion: '2026-11-27T19:29:38',
   daily: {
+    dataVersion: '2026-11-27T19:29:38',
+    syncedAt: '27/11/2026 19:29',
     reportDate: '27/11/2026',
     cutoffTime: '19:00',
     sourceFile: 'Quản trị thực hiện chỉ tiêu Tháng.2026 - Thaco Auto Thanh Hóa.xlsx',
@@ -14,7 +17,7 @@ window.PP.PLANS_TRACKING = {
       reportDate: '26/11/2026',
       arrays: {
         'Kinh doanh Xe Du lịch': { prevMonthActual: 47, prevContractActual: 108 },
-        'Kinh doanh Xe Tải Bus': { prevMonthActual: 43, prevContractActual: 63 },
+        'Kinh doanh Xe Tải Bus': { prevMonthActual: 51, prevContractActual: 62 },
         'Kinh doanh Xe DL đã QSD': { prevMonthActual: 1, prevContractActual: 1 },
         'Dịch vụ Phụ tùng Du lịch': { prevMonthActual: 3046, prevDvscActual: 729 },
         'Dịch vụ Phụ tùng Tải Bus': { prevMonthActual: 1683, prevDvscActual: 508.7 },
@@ -31,13 +34,13 @@ window.PP.PLANS_TRACKING = {
       { id: 'v-sr-hh', group: 'Kinh doanh Xe Du lịch', name: 'SR Hoằng Hóa', isSubRow: true, thT10: 9, carryOver: 1, planKhqt: 135, planGdtd: 45, contractTarget: 15, monthTarget: 15, planDkm: 43, dayKhqt: 1, dayGdtd: 0, dayContract: 0, dayActual: 1, dayDkm: 0, cumKhqt: 60, cumGdtd: 18, contractActual: 13, monthActual: 4, cumDkm: 6, remKhqt: 154, remGdtd: 10, backlog: 9, xhdNotDkm: 5 },
       { id: 'v-sr-tx', group: 'Kinh doanh Xe Du lịch', name: 'SR Thọ Xuân', isSubRow: true, thT10: 36, carryOver: 1, planKhqt: 414, planGdtd: 138, contractTarget: 46, monthTarget: 46, planDkm: 11, dayKhqt: 2, dayGdtd: 3, dayContract: 2, dayActual: 0, dayDkm: 0, cumKhqt: 202, cumGdtd: 75, contractActual: 33, monthActual: 16, cumDkm: 30, remKhqt: 765, remGdtd: 32, backlog: 17, xhdNotDkm: 0 },
 
-      { id: 'v-tn', group: 'Kinh doanh Xe Tải Bus', name: 'TẢI NHẸ', thT10: 47, carryOver: 0, planKhqt: 270, planGdtd: 110, contractTarget: 53, monthTarget: 50, planDkm: 43, dayKhqt: 10, dayGdtd: 2, dayContract: 1, dayActual: 5, dayDkm: 0, cumKhqt: 243, cumGdtd: 63, contractActual: 49, monthActual: 38, cumDkm: 4, remKhqt: 506, remGdtd: 25, backlog: 11, xhdNotDkm: 1 },
-      { id: 'v-tt', group: 'Kinh doanh Xe Tải Bus', name: 'TẢI TRUNG, BEN TRUNG', thT10: 10, carryOver: 0, planKhqt: 59, planGdtd: 30, contractTarget: 15, monthTarget: 15, planDkm: 8, dayKhqt: 3, dayGdtd: 1, dayContract: 0, dayActual: 1, dayDkm: 0, cumKhqt: 60, cumGdtd: 18, contractActual: 13, monthActual: 10, cumDkm: 1, remKhqt: 106, remGdtd: 7, backlog: 3, xhdNotDkm: 0 },
-      { id: 'v-tnang', group: 'Kinh doanh Xe Tải Bus', name: 'ĐK, SMRM, TẢI NẶNG', thT10: 0, carryOver: 0, planKhqt: 18, planGdtd: 8, contractTarget: 4, monthTarget: 4, planDkm: 5, dayKhqt: 0, dayGdtd: 0, dayContract: 0, dayActual: 0, dayDkm: 0, cumKhqt: 7, cumGdtd: 2, contractActual: 1, monthActual: 1, cumDkm: 0, remKhqt: 14, remGdtd: 0, backlog: 0, xhdNotDkm: 0 },
-      { id: 'v-bus', group: 'Kinh doanh Xe Tải Bus', name: 'BUS & MINI BUS', thT10: 1, carryOver: 0, planKhqt: 14, planGdtd: 4, contractTarget: 3, monthTarget: 3, planDkm: 5, dayKhqt: 0, dayGdtd: 0, dayContract: 0, dayActual: 0, dayDkm: 0, cumKhqt: 5, cumGdtd: 3, contractActual: 1, monthActual: 0, cumDkm: 0, remKhqt: 16, remGdtd: 1, backlog: 1, xhdNotDkm: 0 },
-      { id: 'v-tb-sum', group: 'Kinh doanh Xe Tải Bus', name: 'Tổng xe TB', isSummary: true, thT10: 58, carryOver: 0, planKhqt: 361, planGdtd: 152, contractTarget: 75, monthTarget: 72, planDkm: 61, dayKhqt: 13, dayGdtd: 3, dayContract: 1, dayActual: 6, dayDkm: 0, cumKhqt: 315, cumGdtd: 86, contractActual: 64, monthActual: 49, cumDkm: 5, remKhqt: 642, remGdtd: 33, backlog: 15, xhdNotDkm: 1 },
-      { id: 'v-tb-hh', group: 'Kinh doanh Xe Tải Bus', name: 'SR Hoằng Hóa', isSubRow: true, thT10: 48, carryOver: 0, planKhqt: 255, planGdtd: 114, contractTarget: 56, monthTarget: 53, planDkm: 45, dayKhqt: 7, dayGdtd: 2, dayContract: 1, dayActual: 4, dayDkm: 0, cumKhqt: 241, cumGdtd: 75, contractActual: 59, monthActual: 44, cumDkm: 4, remKhqt: 437, remGdtd: 25, backlog: 13, xhdNotDkm: 1 },
-      { id: 'v-tb-tx', group: 'Kinh doanh Xe Tải Bus', name: 'SR Thọ Xuân', isSubRow: true, thT10: 10, carryOver: 0, planKhqt: 106, planGdtd: 38, contractTarget: 19, monthTarget: 19, planDkm: 16, dayKhqt: 6, dayGdtd: 1, dayContract: 0, dayActual: 2, dayDkm: 0, cumKhqt: 74, cumGdtd: 11, contractActual: 5, monthActual: 3, cumDkm: 1, remKhqt: 205, remGdtd: 8, backlog: 2, xhdNotDkm: 0 },
+      { id: 'v-tn', group: 'Kinh doanh Xe Tải Bus', name: 'TẢI NHẸ', thT10: 47, carryOver: 0, planKhqt: 270, planGdtd: 110, contractTarget: 53, monthTarget: 50, planDkm: 43, dayKhqt: 37, dayGdtd: 11, dayContract: 1, dayActual: 1, dayDkm: 0, cumKhqt: 249, cumGdtd: 64, contractActual: 48, monthActual: 41, cumDkm: 4, remKhqt: 506, remGdtd: 25, backlog: 7, xhdNotDkm: 1 },
+      { id: 'v-tt', group: 'Kinh doanh Xe Tải Bus', name: 'TẢI TRUNG, BEN TRUNG', thT10: 10, carryOver: 0, planKhqt: 59, planGdtd: 30, contractTarget: 15, monthTarget: 15, planDkm: 8, dayKhqt: 11, dayGdtd: 2, dayContract: 0, dayActual: 0, dayDkm: 0, cumKhqt: 65, cumGdtd: 19, contractActual: 13, monthActual: 10, cumDkm: 1, remKhqt: 107, remGdtd: 8, backlog: 3, xhdNotDkm: 0 },
+      { id: 'v-tnang', group: 'Kinh doanh Xe Tải Bus', name: 'ĐK, SMRM, TẢI NẶNG', thT10: 0, carryOver: 0, planKhqt: 18, planGdtd: 8, contractTarget: 4, monthTarget: 4, planDkm: 5, dayKhqt: 2, dayGdtd: 0, dayContract: 0, dayActual: 0, dayDkm: 0, cumKhqt: 9, cumGdtd: 2, contractActual: 1, monthActual: 1, cumDkm: 0, remKhqt: 16, remGdtd: 0, backlog: 0, xhdNotDkm: 0 },
+      { id: 'v-bus', group: 'Kinh doanh Xe Tải Bus', name: 'BUS & MINI BUS', thT10: 1, carryOver: 0, planKhqt: 14, planGdtd: 4, contractTarget: 3, monthTarget: 3, planDkm: 5, dayKhqt: 0, dayGdtd: 0, dayContract: 0, dayActual: 0, dayDkm: 0, cumKhqt: 5, cumGdtd: 3, contractActual: 1, monthActual: 0, cumDkm: 0, remKhqt: 15, remGdtd: 1, backlog: 1, xhdNotDkm: 0 },
+      { id: 'v-tb-sum', group: 'Kinh doanh Xe Tải Bus', name: 'Tổng xe TB', isSummary: true, thT10: 58, carryOver: 0, planKhqt: 361, planGdtd: 152, contractTarget: 75, monthTarget: 72, planDkm: 61, dayKhqt: 50, dayGdtd: 13, dayContract: 1, dayActual: 1, dayDkm: 0, cumKhqt: 328, cumGdtd: 88, contractActual: 63, monthActual: 52, cumDkm: 5, remKhqt: 644, remGdtd: 34, backlog: 11, xhdNotDkm: 1 },
+      { id: 'v-tb-hh', group: 'Kinh doanh Xe Tải Bus', name: 'SR Hoằng Hóa', isSubRow: true, thT10: 48, carryOver: 0, planKhqt: 255, planGdtd: 114, contractTarget: 56, monthTarget: 53, planDkm: 45, dayKhqt: 38, dayGdtd: 11, dayContract: 1, dayActual: 1, dayDkm: 0, cumKhqt: 251, cumGdtd: 78, contractActual: 58, monthActual: 47, cumDkm: 4, remKhqt: 438, remGdtd: 27, backlog: 11, xhdNotDkm: 1 },
+      { id: 'v-tb-tx', group: 'Kinh doanh Xe Tải Bus', name: 'SR Thọ Xuân', isSubRow: true, thT10: 10, carryOver: 0, planKhqt: 106, planGdtd: 38, contractTarget: 19, monthTarget: 19, planDkm: 16, dayKhqt: 12, dayGdtd: 2, dayContract: 0, dayActual: 0, dayDkm: 0, cumKhqt: 77, cumGdtd: 10, contractActual: 5, monthActual: 5, cumDkm: 1, remKhqt: 206, remGdtd: 7, backlog: 0, xhdNotDkm: 0 },
 
       { id: 'v-qsd-kia', group: 'Kinh doanh Xe DL đã QSD', name: 'KIA (QSD)', thT10: 0, carryOver: 0, planKhqt: 0, planGdtd: 0, contractTarget: 1, monthTarget: 1, planDkm: 0, dayKhqt: 0, dayGdtd: 0, dayContract: 0, dayActual: 0, dayDkm: 0, cumKhqt: 0, cumGdtd: 0, contractActual: 1, monthActual: 1, cumDkm: 0, remKhqt: 0, remGdtd: 0, backlog: 0, xhdNotDkm: 0 },
       { id: 'v-qsd-maz', group: 'Kinh doanh Xe DL đã QSD', name: 'MAZDA (QSD)', thT10: 2, carryOver: 0, planKhqt: 0, planGdtd: 0, contractTarget: 2, monthTarget: 2, planDkm: 0, dayKhqt: 0, dayGdtd: 0, dayContract: 0, dayActual: 0, dayDkm: 0, cumKhqt: 0, cumGdtd: 0, contractActual: 0, monthActual: 0, cumDkm: 0, remKhqt: 0, remGdtd: 0, backlog: 0, xhdNotDkm: 0 },

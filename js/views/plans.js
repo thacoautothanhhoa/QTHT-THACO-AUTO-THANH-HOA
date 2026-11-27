@@ -647,7 +647,7 @@
         <div class="strategy-banner-main">
           <div class="strategy-banner-title">⏱️ ĐÁNH GIÁ BÁO CÁO NGÀY — CHỐT HOÀN THÀNH 19:00 HÀNG NGÀY</div>
           <div class="strategy-banner-desc">
-            <strong>Ngày báo cáo:</strong> <span class="mono">${escapeHtml(daily.reportDate)}</span> &nbsp;•&nbsp;
+            <strong>Ngày báo cáo:</strong> <span class="mono">${escapeHtml(daily.reportDate)}</span>${daily.syncedAt ? ` &nbsp;•&nbsp; <strong>Đồng bộ Excel:</strong> <span class="mono">${escapeHtml(daily.syncedAt)}</span>` : ''} &nbsp;•&nbsp;
             <strong>Thời gian tháng đã qua:</strong> Ngày <strong>${timeInfo.day} / ${timeInfo.totalDays}</strong> ngày (<strong>${timeInfo.pct}%</strong> số ngày trong tháng ${timeInfo.month}/${timeInfo.year}).<br/>
             ${escapeHtml(sched.text)}
           </div>
