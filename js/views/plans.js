@@ -272,8 +272,14 @@
         </div>
 
         <!-- Bảng chi tiết đầy đủ cột cho Kinh doanh Xe (cố định cột tên, chia màu nhóm rõ ràng) -->
-        <div style="font-weight:700; font-size:13px; margin:12px 0 6px; color:var(--accent);">
-          🚗 CHI TIẾT KINH DOANH XE THEO NGÀY &amp; LŨY KẾ (Nhấn vào dòng để cập nhật số liệu)
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin:12px 0 8px;">
+          <div style="font-weight:700; font-size:13px; color:var(--accent);">
+            🚗 CHI TIẾT KINH DOANH XE THEO NGÀY &amp; LŨY KẾ (Nhấn vào dòng để cập nhật số liệu)
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm" data-capture-section="vehicle">📸 Chụp ảnh KD Xe (.png)</button>
+            <button type="button" class="btn btn-blue btn-sm" data-capture-section="all">📸 Chụp toàn bộ BC (.png)</button>
+          </div>
         </div>
         <div class="table-wrap" style="margin-bottom:16px;">
           <table class="exec-table">
@@ -335,8 +341,13 @@
         </div>
 
         <!-- Bảng chi tiết đầy đủ cột cho Kinh doanh DVPT -->
-        <div style="font-weight:700; font-size:13px; margin:8px 0 6px; color:var(--accent);">
-          🔧 CHI TIẾT KINH DOANH DVPT THEO NGÀY &amp; LŨY KẾ (Đvt: Triệu đồng)
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin:8px 0 8px;">
+          <div style="font-weight:700; font-size:13px; color:var(--accent);">
+            🔧 CHI TIẾT KINH DOANH DVPT THEO NGÀY &amp; LŨY KẾ (Đvt: Triệu đồng)
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm" data-capture-section="dvpt">📸 Chụp ảnh DVPT (.png)</button>
+          </div>
         </div>
         <div class="table-wrap">
           <table class="exec-table">
@@ -522,10 +533,12 @@
   /**
    * Vẽ khung hình Báo cáo Ngày ra Canvas độ phân giải cao và tải xuống file PNG.
    */
-  function captureDailySnapshotPng(daily) {
+  function captureDailySnapshotPng(daily, section = 'all') {
     const vRows = daily.vehicleRows || [];
     const dRows = daily.dvptRows || [];
     const timeInfo = getMonthTimeProgress(daily.reportDate);
+    const includeVehicle = section === 'all' || section === 'vehicle';
+    const includeDvpt = section === 'all' || section === 'dvpt';
 
     const scale = 2;
     const width = 1284;
@@ -533,7 +546,10 @@
     const headerH = 44;
     const topBannerH = 48;
     const gap = 24;
-    const height = topBannerH + headerH + vRows.length * rowH + gap + headerH + dRows.length * rowH + 28;
+    const vehicleBlockH = includeVehicle ? headerH + vRows.length * rowH : 0;
+    const dvptBlockH = includeDvpt ? headerH + dRows.length * rowH : 0;
+    const middleGap = includeVehicle && includeDvpt ? gap : 0;
+    const height = topBannerH + vehicleBlockH + middleGap + dvptBlockH + 28;
 
     const canvas = document.createElement('canvas');
     canvas.width = width * scale;
@@ -549,8 +565,9 @@
     ctx.font = 'bold 15px "Segoe UI", Arial, sans-serif';
     ctx.fillText('THACO AUTO THANH HÓA', 16, 28);
     ctx.fillStyle = '#00529b';
+    const sectionSubtitle = section === 'vehicle' ? '   |   Kinh doanh Xe' : section === 'dvpt' ? '   |   Kinh doanh DVPT' : '';
     ctx.fillText(
-      `Ngày báo cáo: ${daily.reportDate}   |   Ngày ${timeInfo.day}/${timeInfo.totalDays} tháng (${timeInfo.pct}% thời gian)`,
+      `Ngày báo cáo: ${daily.reportDate}   |   Ngày ${timeInfo.day}/${timeInfo.totalDays} tháng (${timeInfo.pct}% thời gian)${sectionSubtitle}`,
       260,
       28
     );
@@ -622,96 +639,104 @@
 
     const vWidths = [156, 46, 46, 46, 46, 52, 42, 42, 42, 42, 52, 40, 40, 46, 46, 52, 42, 42, 42, 42, 46, 46, 54, 54];
     // Total vWidths = 1260; scale slightly or pad to fit nicely inside 1480
-    const nextY = drawGridTable(
-      topBannerH,
-      vWidths,
-      [
-        { label: 'KINH DOANH XE (xe)', start: 0, span: 1, bg: '#e8eef7' },
-        { label: 'TH T10/25', start: 1, span: 1, bg: '#ffff00' },
-        { label: 'Tồn T11', start: 2, span: 1 },
-        { label: `Chỉ tiêu Tháng ${timeInfo.month}.${timeInfo.year}`, start: 3, span: 5 },
-        { label: 'Thực hiện ngày', start: 8, span: 5 },
-        { label: `Lũy kế tháng ${timeInfo.month} đến ${daily.reportDate}`, start: 13, span: 7 },
-        { label: 'Còn lại', start: 20, span: 4 },
-      ],
-      ['Nội dung', 'T10/25', 'Tồn', 'KHQT', 'GDTD', 'Ký HĐ', 'XHĐ', 'ĐKM', 'KHQT', 'GDTD', 'Ký HĐ', 'XHĐ', 'ĐKM', 'KHQT', 'GDTD', 'Ký HĐ', '%TH', 'XHĐ', '%TH', 'ĐKM', 'KHQT', 'GDTD', 'HĐ tồn', 'ChưaĐK'],
-      vRows,
-      (r) => {
-        const cPct = r.contractTarget > 0 ? Math.round((r.contractActual / r.contractTarget) * 100) : null;
-        const xPct = r.monthTarget > 0 ? Math.round((r.monthActual / r.monthTarget) * 100) : null;
-        return [
-          { text: r.name, bold: r.isSummary },
-          { text: formatCellZeroBlank(r.thT10), bold: true },
-          { text: formatCellZeroBlank(r.carryOver) },
-          { text: formatCellZeroBlank(r.planKhqt) },
-          { text: formatCellZeroBlank(r.planGdtd) },
-          { text: formatCellZeroBlank(r.contractTarget) },
-          { text: formatCellZeroBlank(r.monthTarget) },
-          { text: formatCellZeroBlank(r.planDkm) },
-          { text: formatCellZeroBlank(r.dayKhqt) },
-          { text: formatCellZeroBlank(r.dayGdtd) },
-          { text: formatCellZeroBlank(r.dayContract) },
-          { text: formatCellZeroBlank(r.dayActual) },
-          { text: formatCellZeroBlank(r.dayDkm) },
-          { text: formatCellZeroBlank(r.cumKhqt) },
-          { text: formatCellZeroBlank(r.cumGdtd) },
-          { text: formatCellZeroBlank(r.contractActual) },
-          { text: cPct !== null ? `${cPct}%` : '', color: cPct !== null && cPct < 80 ? '#dc2626' : '#15803d', bold: true },
-          { text: formatCellZeroBlank(r.monthActual) },
-          { text: xPct !== null ? `${xPct}%` : '', color: xPct !== null && xPct < 80 ? '#dc2626' : '#15803d', bold: true },
-          { text: formatCellZeroBlank(r.cumDkm) },
-          { text: formatCellZeroBlank(r.remKhqt) },
-          { text: formatCellZeroBlank(r.remGdtd) },
-          { text: formatCellZeroBlank(r.backlog), bold: true },
-          { text: formatCellZeroBlank(r.xhdNotDkm) },
-        ];
-      }
-    );
+    let currentY = topBannerH;
+    if (includeVehicle) {
+      currentY = drawGridTable(
+        currentY,
+        vWidths,
+        [
+          { label: 'KINH DOANH XE (xe)', start: 0, span: 1, bg: '#e8eef7' },
+          { label: 'TH T10/25', start: 1, span: 1, bg: '#ffff00' },
+          { label: 'Tồn T11', start: 2, span: 1 },
+          { label: `Chỉ tiêu Tháng ${timeInfo.month}.${timeInfo.year}`, start: 3, span: 5 },
+          { label: 'Thực hiện ngày', start: 8, span: 5 },
+          { label: `Lũy kế tháng ${timeInfo.month} đến ${daily.reportDate}`, start: 13, span: 7 },
+          { label: 'Còn lại', start: 20, span: 4 },
+        ],
+        ['Nội dung', 'T10/25', 'Tồn', 'KHQT', 'GDTD', 'Ký HĐ', 'XHĐ', 'ĐKM', 'KHQT', 'GDTD', 'Ký HĐ', 'XHĐ', 'ĐKM', 'KHQT', 'GDTD', 'Ký HĐ', '%TH', 'XHĐ', '%TH', 'ĐKM', 'KHQT', 'GDTD', 'HĐ tồn', 'ChưaĐK'],
+        vRows,
+        (r) => {
+          const cPct = r.contractTarget > 0 ? Math.round((r.contractActual / r.contractTarget) * 100) : null;
+          const xPct = r.monthTarget > 0 ? Math.round((r.monthActual / r.monthTarget) * 100) : null;
+          return [
+            { text: r.name, bold: r.isSummary },
+            { text: formatCellZeroBlank(r.thT10), bold: true },
+            { text: formatCellZeroBlank(r.carryOver) },
+            { text: formatCellZeroBlank(r.planKhqt) },
+            { text: formatCellZeroBlank(r.planGdtd) },
+            { text: formatCellZeroBlank(r.contractTarget) },
+            { text: formatCellZeroBlank(r.monthTarget) },
+            { text: formatCellZeroBlank(r.planDkm) },
+            { text: formatCellZeroBlank(r.dayKhqt) },
+            { text: formatCellZeroBlank(r.dayGdtd) },
+            { text: formatCellZeroBlank(r.dayContract) },
+            { text: formatCellZeroBlank(r.dayActual) },
+            { text: formatCellZeroBlank(r.dayDkm) },
+            { text: formatCellZeroBlank(r.cumKhqt) },
+            { text: formatCellZeroBlank(r.cumGdtd) },
+            { text: formatCellZeroBlank(r.contractActual) },
+            { text: cPct !== null ? `${cPct}%` : '', color: cPct !== null && cPct < 80 ? '#dc2626' : '#15803d', bold: true },
+            { text: formatCellZeroBlank(r.monthActual) },
+            { text: xPct !== null ? `${xPct}%` : '', color: xPct !== null && xPct < 80 ? '#dc2626' : '#15803d', bold: true },
+            { text: formatCellZeroBlank(r.cumDkm) },
+            { text: formatCellZeroBlank(r.remKhqt) },
+            { text: formatCellZeroBlank(r.remGdtd) },
+            { text: formatCellZeroBlank(r.backlog), bold: true },
+            { text: formatCellZeroBlank(r.xhdNotDkm) },
+          ];
+        }
+      );
+      if (includeDvpt) currentY += gap;
+    }
 
     const dWidths = [180, 62, 62, 68, 84, 72, 68, 72, 72, 72, 84, 58, 72, 58, 72, 72];
-    drawGridTable(
-      nextY + gap,
-      dWidths,
-      [
-        { label: 'KINH DOANH DVPT (Triệu đồng)', start: 0, span: 1, bg: '#e8eef7' },
-        { label: 'TH T10/25', start: 1, span: 1, bg: '#ffff00' },
-        { label: 'Tồn T11', start: 2, span: 1 },
-        { label: `Chỉ tiêu Tháng ${timeInfo.month}.${timeInfo.year}`, start: 3, span: 3 },
-        { label: 'Thực hiện ngày', start: 6, span: 3 },
-        { label: `Lũy kế tháng ${timeInfo.month} đến ${daily.reportDate}`, start: 9, span: 5 },
-        { label: 'Tồn xưởng', start: 14, span: 2 },
-      ],
-      ['Nội dung', 'T10/25', 'Tồn', 'Lượt xe', 'Tổng DT', 'DVSC', 'Lượt', 'Tổng DT', 'DVSC', 'Lượt', 'Tổng DT', '%TH', 'DVSC', '%TH', 'Lượt tồn', 'DT tồn'],
-      dRows,
-      (r) => {
-        const dtPct = r.monthTarget > 0 ? Math.round((r.monthActual / r.monthTarget) * 100) : null;
-        const scPct = r.planDvsc > 0 ? Math.round((r.cumDvsc / r.planDvsc) * 100) : null;
-        return [
-          { text: r.name, bold: r.isSummary },
-          { text: formatCellZeroBlank(r.thT10), bold: true },
-          { text: formatCellZeroBlank(r.carryOver) },
-          { text: formatCellZeroBlank(r.planVisits) },
-          { text: formatCellZeroBlank(r.monthTarget) },
-          { text: formatCellZeroBlank(r.planDvsc) },
-          { text: formatCellZeroBlank(r.dayVisits) },
-          { text: formatCellZeroBlank(r.dayActual) },
-          { text: formatCellZeroBlank(r.dayDvsc) },
-          { text: formatCellZeroBlank(r.cumVisits) },
-          { text: formatCellZeroBlank(r.monthActual) },
-          { text: dtPct !== null ? `${dtPct}%` : '', color: dtPct !== null && dtPct < 80 ? '#dc2626' : '#15803d', bold: true },
-          { text: formatCellZeroBlank(r.cumDvsc) },
-          { text: scPct !== null ? `${scPct}%` : '', color: scPct !== null && scPct < 80 ? '#dc2626' : '#15803d', bold: true },
-          { text: formatCellZeroBlank(r.backlogVisits) },
-          { text: formatCellZeroBlank(r.backlog) },
-        ];
-      }
-    );
+    if (includeDvpt) {
+      drawGridTable(
+        currentY,
+        dWidths,
+        [
+          { label: 'KINH DOANH DVPT (Triệu đồng)', start: 0, span: 1, bg: '#e8eef7' },
+          { label: 'TH T10/25', start: 1, span: 1, bg: '#ffff00' },
+          { label: 'Tồn T11', start: 2, span: 1 },
+          { label: `Chỉ tiêu Tháng ${timeInfo.month}.${timeInfo.year}`, start: 3, span: 3 },
+          { label: 'Thực hiện ngày', start: 6, span: 3 },
+          { label: `Lũy kế tháng ${timeInfo.month} đến ${daily.reportDate}`, start: 9, span: 5 },
+          { label: 'Tồn xưởng', start: 14, span: 2 },
+        ],
+        ['Nội dung', 'T10/25', 'Tồn', 'Lượt xe', 'Tổng DT', 'DVSC', 'Lượt', 'Tổng DT', 'DVSC', 'Lượt', 'Tổng DT', '%TH', 'DVSC', '%TH', 'Lượt tồn', 'DT tồn'],
+        dRows,
+        (r) => {
+          const dtPct = r.monthTarget > 0 ? Math.round((r.monthActual / r.monthTarget) * 100) : null;
+          const scPct = r.planDvsc > 0 ? Math.round((r.cumDvsc / r.planDvsc) * 100) : null;
+          return [
+            { text: r.name, bold: r.isSummary },
+            { text: formatCellZeroBlank(r.thT10), bold: true },
+            { text: formatCellZeroBlank(r.carryOver) },
+            { text: formatCellZeroBlank(r.planVisits) },
+            { text: formatCellZeroBlank(r.monthTarget) },
+            { text: formatCellZeroBlank(r.planDvsc) },
+            { text: formatCellZeroBlank(r.dayVisits) },
+            { text: formatCellZeroBlank(r.dayActual) },
+            { text: formatCellZeroBlank(r.dayDvsc) },
+            { text: formatCellZeroBlank(r.cumVisits) },
+            { text: formatCellZeroBlank(r.monthActual) },
+            { text: dtPct !== null ? `${dtPct}%` : '', color: dtPct !== null && dtPct < 80 ? '#dc2626' : '#15803d', bold: true },
+            { text: formatCellZeroBlank(r.cumDvsc) },
+            { text: scPct !== null ? `${scPct}%` : '', color: scPct !== null && scPct < 80 ? '#dc2626' : '#15803d', bold: true },
+            { text: formatCellZeroBlank(r.backlogVisits) },
+            { text: formatCellZeroBlank(r.backlog) },
+          ];
+        }
+      );
+    }
 
+    const suffix = section === 'vehicle' ? '_KDXe' : section === 'dvpt' ? '_DVPT' : '';
     const a = document.createElement('a');
     a.href = canvas.toDataURL('image/png');
-    a.download = `BaoCaoNgay_THACO_ThanhHoa_${daily.reportDate.replace(/\//g, '-')}.png`;
+    a.download = `BaoCaoNgay_THACO_ThanhHoa${suffix}_${daily.reportDate.replace(/\//g, '-')}.png`;
     a.click();
-    showToast('Đã chụp và tải ảnh Khung hình Báo cáo Ngày (.png)');
+    const labelMap = { vehicle: 'Kinh doanh Xe', dvpt: 'Kinh doanh DVPT', all: 'Khung hình Báo cáo Ngày' };
+    showToast(`Đã chụp và tải ảnh ${labelMap[section] || 'Báo cáo Ngày'} (.png)`);
   }
 
   function renderDailyTab(ctx) {
@@ -1393,7 +1418,13 @@
       });
     });
     container.querySelector('#capture-png-btn')?.addEventListener('click', () => {
-      captureDailySnapshotPng(ctx.data.tracking.daily);
+      captureDailySnapshotPng(ctx.data.tracking.daily, 'all');
+    });
+    container.querySelectorAll('[data-capture-section]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const section = btn.getAttribute('data-capture-section') || 'all';
+        captureDailySnapshotPng(ctx.data.tracking.daily, section);
+      });
     });
 
     container.querySelector('#edit-report-date-btn')?.addEventListener('click', () => {
