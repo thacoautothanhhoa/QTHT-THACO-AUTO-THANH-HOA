@@ -128,7 +128,7 @@
 
       const deltaMain = currMain - Number(prev.prevMonthActual || 0);
       const deltaSub = currSub - prevSub;
-      const hasChange = dayMain !== 0 || daySub !== 0 || deltaMain !== 0 || deltaSub !== 0;
+      const hasChange = deltaMain !== 0 || deltaSub !== 0;
       const isConfirmedZero = confirmedZero.has(meta.key);
       const updated = hasChange || isConfirmedZero;
 
